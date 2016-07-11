@@ -11,5 +11,5 @@ tera = "*"
 time = "*"
 
 [dependencies.postgres]
-version = "*"
+version = ">=0.11.9"
 features = ["time"]
