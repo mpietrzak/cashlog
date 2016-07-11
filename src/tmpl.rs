@@ -8,6 +8,102 @@ use model::Entry;
 fn tmpl_css() -> String {
     String::from("
         <style>
+
+            header {
+                overflow: hidden;
+                background: #222;
+            }
+
+            header a, header label {
+                display: block;
+                padding: 20px;
+                color: #fff;
+                text-decoration: none;
+                line-height: 20px;
+            }
+
+            header a:hover, header label:hover { color: #aaa; }
+
+            header label {
+                float: right;
+                padding: 18px 20px;
+                cursor: pointer;
+            }
+
+            header label:after {
+                content: \"\\2261\";
+                font-size: 1.8em;
+            }
+
+            .logo {
+                float: left;
+                font-weight: bold;
+                font-size: 1.5em;
+            }
+
+            nav {
+                float: right;
+                max-height: 0;
+                width: 100%;
+                -webkit-transition: max-height 0.3s;
+                -moz-transition: max-height 0.3s;
+                -o-transition: max-height 0.3s;
+                transition: max-height 0.3s;
+            }
+
+            nav ul {
+                margin: 0;
+                padding: 0;
+                padding-bottom: 10px;
+            }
+
+            nav li {
+                display: block;
+                text-align: center;
+            }
+
+            nav a {
+                padding: 10px;
+                width: 100%;
+            }
+
+            #nav { display: none; }
+
+            #nav:checked ~ nav {
+                max-height: 200px; /* This can be anything bigger than your nav height. The transition duration works with this */
+            }
+
+            @media only screen and (min-width: 700px) {
+
+                header label { display: none; }
+
+                nav {
+                    width: auto;
+                    max-height: none;
+                }
+
+                nav ul {
+                    padding: 0;
+                    padding-right: 10px;
+                }
+
+                nav li {
+                    display: inline-block;
+                    text-align: left;
+                }
+
+                header nav a {
+                    display: inline-block;
+                    padding: 20px 10px;
+                    width: auto;
+                }
+
+            }
+
+            .content {
+                padding: 2em 3em 0;
+            }
+
             body {
                 font-family: sans-serif;
                 font-size: 11pt;
@@ -29,7 +125,28 @@ fn tmpl_css() -> String {
 
 fn tmpl_head(title: &str) -> String {
     let style_html = tmpl_css();
-    format!("<head><title>{}</title>{}</head>\n", title, style_html)
+    format!("\
+        <head>
+            <title>{}</title>
+            <link rel=\"stylesheet\" href=\"http://yui.yahooapis.com/pure/0.6.0/pure-min.css\">
+            {}
+        </head>\n", title, style_html)
+}
+
+fn tmpl_menu() -> String {
+    String::from("
+        <header>
+            <a class=\"logo\">CashLog</a>
+            <input id=\"nav\" type=\"checkbox\">
+            <label for=\"nav\"></label>
+            <nav>
+                <ul>
+                    <li><a href=\"/\">Table</a></li>
+                    <li><a href=\"/add\">Add</a></li>
+                </ul>
+            </nav>
+        </header>
+    ")
 }
 
 fn tmpl_entries(entries: &Vec<Entry>) -> String {
@@ -67,8 +184,21 @@ fn tmpl_entries(entries: &Vec<Entry>) -> String {
 
 fn tmpl_base(title: &str, content: &str) -> String {
     let head_html = tmpl_head(title);
-    let body_html = format!("<body>{}</body>", content);
-    format!("<html>{}{}</html>", head_html, body_html)
+    let body_html = format!("\
+        <body>
+            {}
+            <div id=\"layout\" class=\"pure-g\">
+                <div class=\"content pure-u-1\">
+                    <div>
+                        {}
+                    </div>
+                </div>
+            </div>
+        </body>
+    ",
+        tmpl_menu(),
+        content);
+    format!("<!doctype html><html>{}{}</html>", head_html, body_html)
 }
 
 pub fn tmpl_main(title: &str, entries: &Vec<Entry>) -> String {
