@@ -4,12 +4,21 @@ version = "0.1.0"
 authors = ["Maciej Pietrzak"]
 
 [dependencies]
-iron = "*"
+# mount = ">=0.2"
+# staticfile = "*"
+env_logger = ">=0.3"
+hyper = ">=0.9"
+iron = ">=0.3"
+lettre = ">=0.6"
+log = ">=0.3"
+maud = { version = "*", features = ["iron"] }
+maud_macros = "*"
 params = "*"
-router = "*"
-tera = "*"
+postgres = { version = ">0.12", features = ["with-time"] }
+router = ">=0.1.1"
 time = "*"
-
-[dependencies.postgres]
-version = ">=0.11.9"
-features = ["time"]
+toml = ">=0.2"
+url = { git = "https://github.com/servo/rust-url" }
+uuid = "*"
+logger = { git = "https://github.com/iron/logger.git" }
+rustc-serialize = ">=0.3"

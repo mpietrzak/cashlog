@@ -1,86 +1,108 @@
-extern crate iron;
+
+#![feature(plugin)]
+#![plugin(maud_macros)]
+
+#[macro_use] extern crate iron;
+#[macro_use] extern crate log;
+// extern crate mount;
+// extern crate staticfile;
+extern crate env_logger;
+extern crate hyper;
+extern crate lettre;
+extern crate logger;
+extern crate maud;
 extern crate params;
 extern crate postgres;
-#[macro_use]
 extern crate router;
 extern crate time;
+extern crate url;
+extern crate uuid;
+extern crate rustc_serialize;
+extern crate toml;
 
+// use std::path;
 use iron::prelude::*;
-use iron::mime::Mime;
-use postgres::{Connection, SslMode};
-use postgres::rows::Row;
+use rustc_serialize::Decodable;
+use std::io::Read;
+use std::path::PathBuf;
+use std::path::Path;
 
-use model::Entry;
-use tmpl::tmpl_add;
-use tmpl::tmpl_main;
-use util::get_double;
-use util::get_str;
-use util::get_ts;
-
+mod common;
+mod db;
 mod model;
+mod page;
 mod tmpl;
 mod util;
 
-fn connect() -> Connection {
-    Connection::connect("postgres://cashlog@localhost/cashlog", SslMode::None).unwrap()
-}
-
-fn row_to_entry(row: Row) -> Entry {
-    Entry {
-        id: row.get(0),
-        amount: row.get(1),
-        currency: row.get(2),
-        ts: row.get(3)
+/// Load config or exit.
+fn load_config_or_exit() -> model::Config {
+    let config_filename = "cashlog.toml";
+    let mut toml_source = String::new();
+    {
+        let mut f = match std::fs::File::open(config_filename) {
+            Ok(f) => f,
+            Err(e) => {
+                error!("Failed to open config file {}: {}.", config_filename, e);
+                debug!("Current directory: {}.", std::env::current_dir()
+                    .map(|d| d.to_str().unwrap_or("<unknown>").to_string())
+                    .unwrap_or("<unknown>".to_string()));
+                std::process::exit(1);
+            }
+        };
+        if let Err(e) = f.read_to_string(&mut toml_source) {
+            error!("Failed to read config file: {}.", e);
+            std::process::exit(1);
+        }
+    }
+    let value: toml::Value = toml::Parser::new(&toml_source).parse().unwrap().get("config").unwrap().clone();
+    let mut decoder = toml::Decoder::new(value);
+    let conf_result = model::Config::decode(&mut decoder);
+    match conf_result {
+        Err(decode_error) => {
+            debug!("Decode error: {}.", decode_error);
+            std::process::exit(1);
+        }
+        Ok(conf) => conf
     }
 }
 
-fn handle_main(_: &mut Request) -> IronResult<Response> {
-    let conn = connect();
-    let sql = "\
-        SELECT id, amount::text, currency, ts
-        FROM entry";
-    let rows = conn.query(sql, &[]).unwrap();
-    let entries: Vec<Entry> = rows.iter().map(row_to_entry).collect();
-    let resp_html = tmpl_main("test", &entries);
-    let resp_content_type = "text/html".parse::<Mime>().unwrap();
-    Ok(Response::with((resp_content_type, iron::status::Ok, resp_html)))
+struct ConfExtensionMiddleware {
+    conf: model::Config
 }
 
-fn handle_add(_: &mut Request) -> IronResult<Response> {
-    let resp_content_type = "text/html".parse::<Mime>().unwrap();
-    let resp_html = tmpl_add("Add");
-    Ok(Response::with((resp_content_type, iron::status::Ok, resp_html)))
-}
-
-fn handle_post_add(request: &mut Request) -> IronResult<Response> {
-    use params::{Params};
-    let map = request.get_ref::<Params>().unwrap();
-    let r_ts = get_ts(map, "ts");
-    let r_amount = get_double(map, "amount");
-    let r_currency = get_str(map, "currency");
-    match (r_amount, r_currency, r_ts) {
-        (Ok(ref amount), Ok(ref currency), Ok(ref ts)) => {
-            println!("amount: {:?}, currency: {:?}, ts: {:?}", amount, currency, ts);
-            let conn = connect();
-            let sql = "
-                insert into entry (id, amount, currency, ts)
-                values (nextval('entry_seq'), $1::text::numeric, $2, $3)";
-            let amount_str = format!("{}", amount);
-            let r = conn.execute(sql, &[&amount_str, currency, ts]);
-            println!("Result: {:?}", r);
-        }
-        errs => {
-            println!("Something not ok with params: {:?}", errs);
-        }
+impl ConfExtensionMiddleware {
+    fn new(conf: model::Config) -> ConfExtensionMiddleware {
+        ConfExtensionMiddleware{conf: conf}
     }
-    Ok(Response::with((iron::status::Ok, "ok")))
+}
+
+impl iron::BeforeMiddleware for ConfExtensionMiddleware {
+    fn before(&self, request: &mut iron::Request) -> iron::IronResult<()> {
+        debug!("ConfExtensionMiddleware::before: conf is: {:?}", self.conf);
+        request.extensions.insert::<model::Config>(self.conf.clone());
+        Ok(())
+    }
 }
 
 fn main() {
-    let r = router!(
-        get "/" => handle_main,
-        get "/add" => handle_add,
-        post "/add" => handle_post_add
-    );
-    Iron::new(r).http("localhost:14080").unwrap();
+    env_logger::init().unwrap();
+    let conf = load_config_or_exit();
+    debug!("Config loaded:\n{:?}", conf);
+    let mut router = router::Router::new();
+    router.get("/", page::main::handle_main, "main");
+    router.get("/add", page::add::handle_add, "add");
+    router.post("/add", page::add::handle_post_add, "add");
+    router.get("/new-session", page::new_session::handle_new_session, "new-session");
+    router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
+    router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
+    // let mut mount = mount::Mount::new();
+    // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));
+    // mount.mount("/", router);
+    let mut chain = Chain::new(router);
+    let (logger_before, logger_after) = logger::Logger::new(None);
+    let conf_extension_middleware = ConfExtensionMiddleware::new(conf);
+    chain.link_before(logger_before);
+    chain.link_before(conf_extension_middleware);
+    chain.link_after(logger_after);
+    Iron::new(chain).http("localhost:14080").unwrap();
 }
