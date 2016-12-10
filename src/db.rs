@@ -1,10 +1,8 @@
 
-use std;
 use std::fmt;
 use std::error::Error;
 
 use postgres;
-use postgres::types::FromSql;
 use time::Timespec;
 
 use model::Entry;

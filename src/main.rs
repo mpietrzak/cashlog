@@ -24,8 +24,6 @@ extern crate toml;
 use iron::prelude::*;
 use rustc_serialize::Decodable;
 use std::io::Read;
-use std::path::PathBuf;
-use std::path::Path;
 
 mod common;
 mod db;

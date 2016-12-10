@@ -1,10 +1,8 @@
 
 use iron::mime::Mime;
-use iron::headers::Cookie;
 // use iron::headers::CookieJar;
 use iron::prelude::*;
 use iron;
-use url;
 use hyper;
 
 use model::Entry;

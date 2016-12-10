@@ -6,9 +6,7 @@ use std;
 use iron;
 use lettre::email::EmailBuilder;
 use lettre::transport::EmailTransport;
-use lettre::transport::smtp::SmtpTransport;
 use lettre::transport::smtp::SmtpTransportBuilder;
-use lettre::transport::stub::StubEmailTransport;
 use postgres;
 
 use db;
