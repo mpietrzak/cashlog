@@ -10,6 +10,7 @@ use lettre::transport::smtp::SmtpTransportBuilder;
 use postgres;
 
 use db;
+use model;
 
 pub const COOKIE_KEY: &'static [u8] = b"2ac7b2d5-b4c0-4e0a-a945-b9b8dbf4fbcb";
 
@@ -89,9 +90,30 @@ pub fn get_session_account_id(
     o_account_id
 }
 
-pub fn send_email_login_email(email: &str, key: &str, use_email: bool) -> Result<(), Error> {
-    let body = format!("Click this link to login to CashLog: http://localhost:14080/new-session/{}", key);
-    debug!("Sending email:\n{}", body);
+/// Return base_url from request's config.
+/// TODO: do not copy, but return reference to request's base url (with lifetime
+/// of the request itself).
+pub fn get_base_url(request: &iron::Request) -> Option<String> {
+    match request.extensions.get::<model::Config>() {
+        Some(config) => {
+            config.base_url.clone()
+        }
+        None => {
+            error!("Missing config in request.");
+            None
+        }
+    }
+}
+
+pub fn send_email_login_email(
+        base_url: Option<&str>,
+        email: &str,
+        key: &str,
+        use_email: bool) -> Result<(), Error> {
+    let url = format!("http://{}/new-session/{}",
+        base_url.unwrap_or("localhost:14080"),
+        key);
+    let body = format!("Click this link to login to CashLog: {}", url);
     if use_email {
         let m = EmailBuilder::new()
             .to(email)
@@ -101,6 +123,7 @@ pub fn send_email_login_email(email: &str, key: &str, use_email: bool) -> Result
             .build()
             .unwrap();
         let mut mailer = SmtpTransportBuilder::localhost().unwrap().build();
+        debug!("Sending email:\n{}", body);
         match mailer.send(m) {
             Ok(_) => {
                 debug!("Sent mail to {}.", email);

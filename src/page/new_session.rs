@@ -69,8 +69,13 @@ pub fn handle_post_new_session(r: &mut Request) -> IronResult<Response> {
             let use_email: bool = {
                 r.extensions.get::<model::Config>().map_or(false, |c| c.use_email)
             };
+            let base_url = common::get_base_url(r);
             itry!(db::insert_login_token(&mut conn, &account_id, &token));
-            itry!(common::send_email_login_email(&email, &token, use_email));
+            itry!(common::send_email_login_email(
+                base_url.as_ref().map(String::as_ref),
+                &email,
+                &token,
+                use_email));
             // let resp_content_type = "text/html".parse::<Mime>().unwrap();
             let resp_html = tmpl_new_session_email_sent();
             Ok(Response::with((iron::status::Ok, resp_html)))
