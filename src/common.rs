@@ -105,13 +105,14 @@ pub fn get_base_url(request: &iron::Request) -> Option<String> {
     }
 }
 
+/// Send the login email.
 pub fn send_email_login_email(
         base_url: Option<&str>,
         email: &str,
         key: &str,
         use_email: bool) -> Result<(), Error> {
-    let url = format!("http://{}/new-session/{}",
-        base_url.unwrap_or("localhost:14080"),
+    let url = format!("{}/new-session/{}",
+        base_url.unwrap_or("http://localhost:14080"),
         key);
     let body = format!("Click this link to login to CashLog: {}", url);
     if use_email {
