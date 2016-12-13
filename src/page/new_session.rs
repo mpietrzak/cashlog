@@ -69,10 +69,10 @@ pub fn handle_post_new_session(r: &mut Request) -> IronResult<Response> {
             let use_email: bool = {
                 r.extensions.get::<model::Config>().map_or(false, |c| c.use_email)
             };
-            let base_url = common::get_base_url(r);
+            let base_url = itry!(common::get_base_url(r));
             itry!(db::insert_login_token(&mut conn, &account_id, &token));
             itry!(common::send_email_login_email(
-                base_url.as_ref().map(String::as_ref),
+                &base_url,
                 &email,
                 &token,
                 use_email));

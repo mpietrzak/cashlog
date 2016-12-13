@@ -8,6 +8,7 @@ use lettre::email::EmailBuilder;
 use lettre::transport::EmailTransport;
 use lettre::transport::smtp::SmtpTransportBuilder;
 use postgres;
+use url;
 
 use db;
 use model;
@@ -39,30 +40,39 @@ impl std::error::Error for Error {
     }
 }
 
+impl From<url::ParseError> for Error {
+    fn from(err: url::ParseError) -> Error {
+        Error::new(&format!("Error: url::ParseError: {}", err))
+    }
+}
+
+impl From<String> for Error {
+    fn from(err: String) -> Error {
+        Error::new(&format!("Error: {}", err))
+    }
+}
+
 pub fn get_session_account_id(
         conn: &mut postgres::Connection,
         request: &mut iron::Request) -> Option<i64> {
-    let o_cookie = request.headers.get::<iron::headers::Cookie>();
-    let o_account_id = match o_cookie {
+    match request.headers.get::<iron::headers::Cookie>() {
         Some(cookie) => {
-            debug!("Request cookie header:\n{:?}", cookie);
             let jar = cookie.to_cookie_jar(COOKIE_KEY);
             let signed_jar = jar.signed();
             let o_session_cookie = signed_jar.find("session");
             match o_session_cookie {
                 Some(session_cookie) => {
-                    debug!("Session cookie: {:?}", session_cookie);
                     let session_key: String = session_cookie.value;
-                    debug!("Session cookie value: {}", session_key);
                     let o_account_str = db::get_session_value(conn, &session_key, "account");
                     match o_account_str {
                         Some(account_str) => {
                             match account_str.parse() {
                                 Ok(account_id) => {
-                                    debug!("User is logged in as: {}", account_id);
                                     Some(account_id)
                                 }
                                 Err(e) => {
+                                    // This is a signed cookie, so it's
+                                    // a little bit strange if we can't parse.
                                     warn!("Failed to parse string account id (\"{}\") into integer: {}",
                                         account_str,
                                         e);
@@ -71,49 +81,51 @@ pub fn get_session_account_id(
                             }
                         }
                         None => {
-                            debug!("User is not logged in (session does not contain account variable).");
                             None
                         }
                     }
                 }
                 None => {
-                    debug!("No session cookie in cookie header.");
                     None
                 }
             }
         }
         None => {
-            debug!("No cookie header.");
-            None
-        }
-    };
-    o_account_id
-}
-
-/// Return base_url from request's config.
-/// TODO: do not copy, but return reference to request's base url (with lifetime
-/// of the request itself).
-pub fn get_base_url(request: &iron::Request) -> Option<String> {
-    match request.extensions.get::<model::Config>() {
-        Some(config) => {
-            config.base_url.clone()
-        }
-        None => {
-            error!("Missing config in request.");
             None
         }
     }
 }
 
+/// Get base URL from config or from request.
+pub fn get_base_url(request: &iron::Request) -> Result<String, Error> {
+    if let Some(conf) = request.extensions.get::<model::Config>() {
+        if let Some(ref url) = conf.base_url {
+            return Ok(url.clone());
+        }
+    }
+    let url = &request.url;
+    let scheme = url.scheme();
+    let host = url.host();
+    let port = url.port();
+    Ok(format!("{}://{}:{}", scheme, host, port))
+}
+
+/// Create and return redirect response for given relative path.
+/// Relative path is relative to site's base URL, or to scheme://host:port
+/// of request connection.
+pub fn redirect(request: &iron::Request, path: &str) -> Result<iron::Response, Error> {
+    let base_url = get_base_url(request)?;
+    let to_iron_url = iron::Url::parse(&format!("{}/{}", base_url, path))?;
+    Ok(iron::Response::with((iron::status::Found, iron::modifiers::Redirect(to_iron_url))))
+}
+
 /// Send the login email.
 pub fn send_email_login_email(
-        base_url: Option<&str>,
+        base_url: &str,
         email: &str,
         key: &str,
         use_email: bool) -> Result<(), Error> {
-    let url = format!("{}/new-session/{}",
-        base_url.unwrap_or("http://localhost:14080"),
-        key);
+    let url = format!("{}/new-session/{}", base_url, key);
     let body = format!("Click this link to login to CashLog: {}", url);
     if use_email {
         let m = EmailBuilder::new()

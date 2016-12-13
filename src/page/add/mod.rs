@@ -3,9 +3,7 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 use iron::mime::Mime;
-use iron::modifiers;
 use iron::prelude::*;
-use iron::Url;
 use iron;
 use params::Params;
 
@@ -58,10 +56,11 @@ pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
                 ts,
                 &amount_str,
                 currency));
-            let this_url = request.url.clone().into_generic_url();
-            let to_url = this_url.join("..").unwrap();
-            let to_iron_url = Url::from_generic_url(to_url).unwrap();
-            Ok(Response::with((iron::status::Found, modifiers::Redirect(to_iron_url))))
+            // let this_url = request.url.clone().into_generic_url();
+            // let to_url = this_url.join("..").unwrap();
+            // let to_iron_url = Url::from_generic_url(to_url).unwrap();
+            // Ok(Response::with((iron::status::Found, modifiers::Redirect(to_iron_url))))
+            Ok(itry!(common::redirect(request, ".")))
         }
         errs => {
             let (r_acc, r_amt, r_cur, r_ts) = errs;

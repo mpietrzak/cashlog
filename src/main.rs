@@ -76,7 +76,6 @@ impl ConfExtensionMiddleware {
 
 impl iron::BeforeMiddleware for ConfExtensionMiddleware {
     fn before(&self, request: &mut iron::Request) -> iron::IronResult<()> {
-        debug!("ConfExtensionMiddleware::before: conf is: {:?}", self.conf);
         request.extensions.insert::<model::Config>(self.conf.clone());
         Ok(())
     }
@@ -102,5 +101,7 @@ fn main() {
     chain.link_before(logger_before);
     chain.link_before(conf_extension_middleware);
     chain.link_after(logger_after);
-    Iron::new(chain).http("localhost:14080").unwrap();
+    if let Err(e) = Iron::new(chain).http("localhost:14080") {
+        error!("Failed to start server: {}.", e)
+    }
 }
