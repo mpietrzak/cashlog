@@ -7,10 +7,8 @@ pub fn tmpl_base(title: &str, content: Markup) -> Markup {
         (tmpl_head(title))
         body {
             (tmpl_menu())
-            div id="layout" class="pure-g" {
-                div class="content pure-u-1" {
-                    (content)
-                }
+            div class="content"  {
+                (content)
             }
         }
     }
@@ -24,20 +22,40 @@ fn tmpl_css() -> Markup {
 
                 /* general */
 
-                .content {
-                    margin: 2em 3em 0;
+                /* default */
+                div.content {
+                    margin: 4px;
+                }
+                div.menu {
+                    margin: 4px;
+                }
+
+                /* small */
+                @media (max-width: 800px) {
+                    div.content {
+                        margin: 8px;
+                    }
+                    div.menu {
+                        margin: 8px;
+                    }
+                }
+
+                /* big */
+                @media screen and (min-width: 800px) {
+                    div.content {
+                        margin: 24px;
+                    }
+                    div.menu {
+                        margin: 24px;
+                    }
                 }
 
                 body {
                     font-family: Clear Sans, Helvetica, sans-serif;
-                    font-size: 11pt;
+                    font-size: 16px;
                 }
 
                 /* menu */
-
-                div.menu {
-                    margin: 2em 3em;
-                }
 
                 div.menu > div.menu-item {
                     display: inline-block;
@@ -90,6 +108,7 @@ fn tmpl_head(title: &str) -> Markup {
     html! {
         head {
             title (title)
+            meta name="viewport" content="width=device-width, initial-scale=1" /
             (tmpl_css())
         }
     }
