@@ -84,6 +84,7 @@ impl iron::BeforeMiddleware for ConfExtensionMiddleware {
 fn main() {
     env_logger::init().unwrap();
     let conf = load_config_or_exit();
+    let port = conf.port;
     debug!("Config loaded:\n{:?}", conf);
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
@@ -101,7 +102,8 @@ fn main() {
     chain.link_before(logger_before);
     chain.link_before(conf_extension_middleware);
     chain.link_after(logger_after);
-    if let Err(e) = Iron::new(chain).http("localhost:14080") {
+    let listen_addr = format!("localhost:{}", port.unwrap_or(14080));
+    if let Err(e) = Iron::new(chain).http(&*listen_addr) {
         error!("Failed to start server: {}.", e)
     }
 }

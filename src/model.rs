@@ -13,7 +13,8 @@ pub struct Entry {
 #[derive(Clone, Debug, RustcDecodable)]
 pub struct Config {
     pub base_url: Option<String>,
-    pub use_email: bool
+    pub use_email: bool,
+    pub port: Option<i32>
 }
 
 impl Key for Config { type Value = Config; }
