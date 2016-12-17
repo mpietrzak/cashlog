@@ -19,7 +19,6 @@ fn tmpl_css() -> Markup {
         style {
             (PreEscaped(
                 "
-
                 /* general */
 
                 /* default */
@@ -43,10 +42,10 @@ fn tmpl_css() -> Markup {
                 /* big */
                 @media screen and (min-width: 800px) {
                     div.content {
-                        margin: 24px;
+                        margin: 16px;
                     }
                     div.menu {
-                        margin: 24px;
+                        margin: 16px;
                     }
                 }
 
@@ -56,9 +55,13 @@ fn tmpl_css() -> Markup {
                 }
 
                 /* menu */
+                div.menu {
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: flex-start;
+                }
 
                 div.menu > div.menu-item {
-                    display: inline-block;
                     color: #2A261D;
                 }
 
@@ -120,6 +123,9 @@ fn tmpl_menu() -> Markup {
             div.menu-item { "[ " a href="/" "Table" " ]" }
             div.menu-item { "[ " a href="/add" "Add" " ]" }
             div.menu-item { "[ " a href="/new-session" "New Session" " ]"}
+            // div.menu-item style="flex-grow: 1; display: flex; justify-content: flex-end" {
+            //     "[" a href="/profile" "Profile" "]"
+            // }
         }
     }
 }
