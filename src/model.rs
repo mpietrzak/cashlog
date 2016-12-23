@@ -18,3 +18,11 @@ pub struct Config {
 }
 
 impl Key for Config { type Value = Config; }
+
+/// Details about user account,
+/// e.g. as displayed in profile page.
+pub struct AccountInfo {
+    pub created: Timespec,
+    pub modified: Timespec,
+    pub emails: Box<Vec<String>>
+}

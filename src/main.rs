@@ -93,6 +93,7 @@ fn main() {
     router.get("/new-session", page::new_session::handle_new_session, "new-session");
     router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
     router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
+    router.get("/profile", page::profile::handle_profile, "profile");
     // let mut mount = mount::Mount::new();
     // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));
     // mount.mount("/", router);

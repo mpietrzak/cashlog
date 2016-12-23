@@ -2,6 +2,7 @@
 use params::Map;
 use time::Timespec;
 use time::strptime;
+use time;
 
 pub fn parse_ts(s: &str) -> Result<Timespec, String> {
     let r = strptime(s, "%Y-%m-%d %H:%M:%S");
@@ -63,6 +64,22 @@ pub fn get_str(map: &Map, key: &str) -> Result<String, String> {
         }
         _ => {
             Err(String::from("No such key"))
+        }
+    }
+}
+
+pub fn format_ts(t: time::Timespec) -> String {
+    let tm = time::at_utc(t);
+    let fmt = "%Y-%m-%d %H:%M:%S";
+    match time::strftime(fmt, &tm) {
+        Ok(s) => s,
+        Err(_) => {
+            // Both fmt and t should be safe correct values here,
+            // so we warn if something is not right.
+            warn!("Failed to format {:?} to \"{}\"",
+                t,
+                fmt);
+            String::from("<invalid time>")
         }
     }
 }

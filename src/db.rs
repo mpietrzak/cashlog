@@ -5,6 +5,7 @@ use std::error::Error;
 use postgres;
 use time::Timespec;
 
+use model::AccountInfo;
 use model::Entry;
 
 #[derive(Debug)]
@@ -32,6 +33,8 @@ impl Error for DBError {
     }
 }
 
+/// Connect to DB.
+/// TODO: Should return Error.
 pub fn connect() -> postgres::Connection {
     postgres::Connection::connect(
         "postgres://cashlog@localhost/cashlog",
@@ -179,6 +182,31 @@ pub fn create_account_with_email(
             // Insert failed...
             Err(DBError::new(&format!("Failed to insert account_email: {}", e)))
         }
+    }
+}
+
+pub fn get_user_account_info(conn: &mut postgres::Connection, acc_id: i64) -> Result<Option<AccountInfo>, DBError> {
+    match conn.query(
+        "select
+            created,
+            modified
+        from account
+        where id = $1",
+        &[&acc_id]) {
+        Ok(rows) => match rows.iter().next() {
+            Some(row) => {
+                let created = row.get(0);
+                let modified = row.get(1);
+                let acc_info = AccountInfo {
+                    created: created,
+                    modified: modified,
+                    emails: Box::new(Vec::new())
+                };
+                Ok(Some(acc_info))
+            }
+            None => Ok(None)
+        },
+        Err(e) => Err(DBError::new(&format!("Error getting user account into: {}", e)))
     }
 }
 

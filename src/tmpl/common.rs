@@ -4,11 +4,14 @@ use maud::PreEscaped;
 
 pub fn tmpl_base(title: &str, content: Markup) -> Markup {
     html! {
-        (tmpl_head(title))
-        body {
-            (tmpl_menu())
-            div class="content"  {
-                (content)
+        (PreEscaped("<!DOCTYPE html>"))
+        html {
+            (tmpl_head(title))
+            body {
+                (tmpl_menu(true))
+                div class="content"  {
+                    (content)
+                }
             }
         }
     }
@@ -65,6 +68,10 @@ fn tmpl_css() -> Markup {
                     color: #2A261D;
                 }
 
+                div.menu > div.menu-spacer {
+                    flex-grow: 1;
+                }
+
                 div.menu > div.menu-item a,
                 div.menu > div.menu-item a:hover,
                 div.menu > div.menu-item a:active,
@@ -117,15 +124,18 @@ fn tmpl_head(title: &str) -> Markup {
     }
 }
 
-fn tmpl_menu() -> Markup {
+fn tmpl_menu(logged_in: bool) -> Markup {
     html! {
         div.menu {
             div.menu-item { "[ " a href="/" "Table" " ]" }
             div.menu-item { "[ " a href="/add" "Add" " ]" }
-            div.menu-item { "[ " a href="/new-session" "New Session" " ]"}
-            // div.menu-item style="flex-grow: 1; display: flex; justify-content: flex-end" {
-            //     "[" a href="/profile" "Profile" "]"
-            // }
+            div.menu-spacer ""
+            @if logged_in {
+                div.menu-item { "[ " a href="/profile" "Profile" " ]"}
+                div.menu-item { "[ " a href="/logout" "Logout" " ]"}
+            } @else {
+                div.menu-item { "[ " a href="/new-session" "Login" " ]"}
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 
 use iron::mime::Mime;
-// use iron::headers::CookieJar;
 use iron::prelude::*;
 use iron;
 use hyper;
