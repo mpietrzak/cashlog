@@ -52,45 +52,55 @@ impl From<String> for Error {
     }
 }
 
-pub fn get_session_account_id(
-        conn: &mut postgres::Connection,
-        request: &mut iron::Request) -> Option<i64> {
+/// Extract session id from request cookies.
+pub fn get_session_id(request: &mut iron::Request) -> Result<Option<String>, Error> {
     match request.headers.get::<iron::headers::Cookie>() {
         Some(cookie) => {
             let jar = cookie.to_cookie_jar(COOKIE_KEY);
             let signed_jar = jar.signed();
-            let o_session_cookie = signed_jar.find("session");
-            match o_session_cookie {
-                Some(session_cookie) => {
-                    let session_key: String = session_cookie.value;
-                    let o_account_str = db::get_session_value(conn, &session_key, "account");
-                    match o_account_str {
-                        Some(account_str) => {
-                            match account_str.parse() {
-                                Ok(account_id) => {
-                                    Some(account_id)
-                                }
-                                Err(e) => {
-                                    // This is a signed cookie, so it's
-                                    // a little bit strange if we can't parse.
-                                    warn!("Failed to parse string account id (\"{}\") into integer: {}",
-                                        account_str,
-                                        e);
-                                    None
-                                }
-                            }
-                        }
-                        None => {
-                            None
-                        }
-                    }
-                }
-                None => {
-                    None
-                }
+            match signed_jar.find("session") {
+                Some(c) => Ok(Some(c.value)),
+                None => Ok(None)
             }
         }
         None => {
+            Ok(None)
+        }
+    }
+}
+
+pub fn get_session_account_id(
+        conn: &mut postgres::Connection,
+        request: &mut iron::Request) -> Option<i64> {
+    match get_session_id(request) {
+        Ok(ms) => match ms {
+            Some(s) => {
+                let o_account_str = db::get_session_value(conn, &s, "account");
+                match o_account_str {
+                    Some(account_str) => {
+                        match account_str.parse() {
+                            Ok(account_id) => {
+                                Some(account_id)
+                            }
+                            Err(e) => {
+                                // This is a signed cookie, so it's
+                                // a little bit strange if we can't parse.
+                                warn!("Failed to parse string account id (\"{}\") into integer: {}",
+                                    account_str,
+                                    e);
+                                None
+                            }
+                        }
+                    }
+                    None => {
+                        None
+                    }
+                }
+            }
+            None => None
+        },
+        Err(e) => {
+            warn!("Error while trying to get session id: {}", e);
             None
         }
     }

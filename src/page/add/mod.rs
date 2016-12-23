@@ -14,7 +14,11 @@ use util::get_double;
 use util::get_str;
 use util::get_ts;
 
-pub fn handle_add(_: &mut Request) -> IronResult<Response> {
+pub fn handle_add(request: &mut Request) -> IronResult<Response> {
+    let mut conn = db::connect();
+    if common::get_session_account_id(&mut conn, request).is_none() {
+        return Ok(itry!(common::redirect(request, "/new-session")))
+    }
     let resp_content_type = "text/html".parse::<Mime>().unwrap();
     let empty_btree_map = BTreeMap::new();
     let empty_hash_map = HashMap::new();

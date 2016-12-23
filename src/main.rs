@@ -89,11 +89,12 @@ fn main() {
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
     router.get("/add", page::add::handle_add, "add");
-    router.post("/add", page::add::handle_post_add, "add");
+    router.get("/logout", page::logout::handle_get_logout, "logout");
     router.get("/new-session", page::new_session::handle_new_session, "new-session");
-    router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
     router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
     router.get("/profile", page::profile::handle_profile, "profile");
+    router.post("/add", page::add::handle_post_add, "add");
+    router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
     // let mut mount = mount::Mount::new();
     // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));
     // mount.mount("/", router);

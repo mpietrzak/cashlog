@@ -90,6 +90,13 @@ pub fn set_session_value(conn: &mut postgres::Connection, session_key: &str, nam
     }
 }
 
+pub fn delete_session(conn: &mut postgres::Connection, session_key: &str) -> Result<(), DBError> {
+    match conn.execute("delete from session where key = $1", &[&session_key]) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(DBError::new(&format!("Failed to delete session: {}", e)))
+    }
+}
+
 pub fn get_account_id_by_email(
         conn: &mut postgres::Connection,
         email: &str) -> Result<Option<i64>, DBError> {
@@ -185,7 +192,21 @@ pub fn create_account_with_email(
     }
 }
 
+pub fn get_user_account_emails(conn: &mut postgres::Connection, acc_id: i64) -> Result<Box<Vec<String>>, DBError> {
+    match conn.query(
+        "select email from account_email where account = $1",
+        &[&acc_id]) {
+        Ok(rows) => {
+            let v = rows.iter().map(|r| r.get(0)).collect();
+            let b = Box::new(v);
+            Ok(b)
+        }
+        Err(e) => Err(DBError::new(&format!("Error while getting account emails: {}", e)))
+    }
+}
+
 pub fn get_user_account_info(conn: &mut postgres::Connection, acc_id: i64) -> Result<Option<AccountInfo>, DBError> {
+    let emails = get_user_account_emails(conn, acc_id)?;
     match conn.query(
         "select
             created,
@@ -197,10 +218,11 @@ pub fn get_user_account_info(conn: &mut postgres::Connection, acc_id: i64) -> Re
             Some(row) => {
                 let created = row.get(0);
                 let modified = row.get(1);
+
                 let acc_info = AccountInfo {
                     created: created,
                     modified: modified,
-                    emails: Box::new(Vec::new())
+                    emails: emails,
                 };
                 Ok(Some(acc_info))
             }

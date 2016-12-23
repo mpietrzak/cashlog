@@ -22,7 +22,7 @@ pub fn handle_profile(req: &mut iron::Request) -> iron::IronResult<iron::Respons
             }
         }
         None => {
-            Ok(iron::Response::with(iron::status::NotFound))
+            Ok(itry!(common::redirect(req, "/new-session")))
         }
     }
 }

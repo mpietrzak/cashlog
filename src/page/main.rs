@@ -1,5 +1,4 @@
 
-use iron::mime::Mime;
 use iron::prelude::*;
 use iron;
 use hyper;
@@ -17,8 +16,7 @@ pub fn handle_main(req: &mut Request) -> IronResult<Response> {
     if let Some(account_id) = o_account_id {
         let entries: Vec<Entry> = itry!(db::get_entries(&mut conn, account_id));
         let resp_html = tmpl::main::tmpl_main("Main", &entries);
-        let resp_content_type = "text/html".parse::<Mime>().unwrap();
-        Ok(Response::with((resp_content_type, iron::status::Ok, resp_html)))
+        Ok(Response::with((iron::status::Ok, resp_html)))
     } else {
         let o_conf = req.extensions.get::<model::Config>();
         let o_base_url: Option<String> = o_conf.map_or(None, |c| c.base_url.clone());
@@ -33,7 +31,6 @@ pub fn handle_main(req: &mut Request) -> IronResult<Response> {
             let new_iron_url = iron::Url::from_generic_url(new_url).unwrap();
             new_iron_url
         };
-        // let target_url = iron::Url::parse("https://www.google.com/").unwrap();
         Ok(Response::with((iron::status::Found, iron::modifiers::Redirect(target_url))))
     }
 }
