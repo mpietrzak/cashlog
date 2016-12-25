@@ -13,6 +13,7 @@ extern crate logger;
 extern crate maud;
 extern crate params;
 extern crate postgres;
+extern crate psutil;
 extern crate router;
 extern crate time;
 extern crate url;

@@ -1,6 +1,7 @@
 
 use maud::Markup;
 use maud::PreEscaped;
+use psutil;
 
 pub fn tmpl_base(title: &str, content: Markup) -> Markup {
     html! {
@@ -12,6 +13,28 @@ pub fn tmpl_base(title: &str, content: Markup) -> Markup {
                 div class="content"  {
                     (content)
                 }
+                (tmpl_foot())
+            }
+        }
+    }
+}
+
+/// Create the footer div.
+fn tmpl_foot() -> Markup {
+    let pid = psutil::getpid();
+    let mem_info = if let Ok(mem) = psutil::process::Memory::new(pid) {
+        (format!("Memory usage: {}.", mem.resident))
+    } else {
+        String::from("")
+    };
+    html! {
+        hr /
+        div class="foot" {
+            p {
+                "CashLog is mini-finance tracking app." br /
+                "CashLog is Open Source and it's written in Rust." br/
+                "CashLog uses cookies." br /
+                (mem_info)
             }
         }
     }
@@ -81,6 +104,13 @@ fn tmpl_css() -> Markup {
 
                 div.menu > div.menu-item a.active {
                     color: #A63817;
+                }
+
+                /* footer */
+
+                div.foot {
+                    font-size: 70%;
+                    text-align: center;
                 }
 
                 /* data table */
