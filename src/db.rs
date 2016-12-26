@@ -7,6 +7,7 @@ use postgres;
 use time::Timespec;
 
 use model::AccountInfo;
+use model::BankAccountInfo;
 use model::Entry;
 
 #[derive(Debug)]
@@ -360,4 +361,45 @@ pub fn delete_entry(conn: &mut postgres::Connection, account_id: i64, entry_id: 
         where account = $1 and id = $2",
         &[&account_id, &entry_id])?;
     Ok(())
+}
+
+pub fn get_bank_accounts(conn: &mut postgres::Connection, account_id: i64) -> Result<Vec<BankAccountInfo>, DBError> {
+    let sql = "
+        select
+            last_entry.bank_account,
+            last_entry.amount::text,
+            last_entry.currency,
+            last_entry.ts
+        from
+            (
+                select
+                    (
+                        select id
+                        from entry
+                        where entry.bank_account = bank_account.bank_account
+                        order by ts desc limit 1
+                    ) as id
+                from
+                    (
+                        select distinct bank_account
+                        from entry
+                        where
+                            deleted = false
+                            and account = $1
+                    ) as bank_account
+            ) as bank_account_last_entry_id
+            join entry as last_entry on (last_entry.id = bank_account_last_entry_id.id)
+        order by
+            last_entry.bank_account";
+    match conn.query(sql, &[&account_id]) {
+        Ok(rows) => Ok(rows.iter().map(
+            |row| BankAccountInfo {
+                bank_account: row.get(0),
+                amount: row.get(1),
+                currency: row.get(2),
+                ts: row.get(3)
+            }).collect()),
+        Err(e) => Err(DBError::from(e))
+    }
+
 }

@@ -90,6 +90,7 @@ fn main() {
     debug!("Config loaded:\n{:?}", conf);
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
+    router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");   
     router.get("/add", page::add::handle_add, "add");
     router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/logout", page::logout::handle_get_logout, "logout");

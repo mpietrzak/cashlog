@@ -1,5 +1,6 @@
 
 pub mod add;
+pub mod bank_accounts;
 pub mod delete;
 pub mod logout;
 pub mod main;

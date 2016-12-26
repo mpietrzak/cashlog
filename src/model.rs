@@ -2,6 +2,13 @@
 use iron::typemap::Key;
 use time::Timespec;
 
+pub struct BankAccountInfo {
+    pub bank_account: String,
+    pub amount: String,
+    pub currency: String,
+    pub ts: Timespec
+}
+
 pub struct Entry {
     pub bank_account: String,
     pub amount: String,
