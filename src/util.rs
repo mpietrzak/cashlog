@@ -85,13 +85,13 @@ pub fn format_ts(t: time::Timespec) -> String {
 }
 
 pub fn human_bytes(b: u64) -> String {
-    let mut f = b;
+    let mut f = b as f64;
     let units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
     for unit in units.iter() {
-        if f < 512 {
+        if f < 512.0 {
             return format!("{:.2} {}", f, unit);
         } else {
-            f = f / 1024;
+            f = f / 1024.0;
         }
     }
     String::from("<out of range>")
