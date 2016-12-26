@@ -14,6 +14,7 @@ log = ">=0.3"
 maud = { version = "*", features = ["iron"] }
 maud_macros = "*"
 params = "*"
+plugin = "*"
 postgres = { version = ">0.12", features = ["with-time"] }
 psutil = { version = ">=1" }
 router = ">=0.1.1"

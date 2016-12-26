@@ -1,4 +1,5 @@
 
+use std;
 use std::fmt;
 use std::error::Error;
 
@@ -30,6 +31,12 @@ impl fmt::Display for DBError {
 impl Error for DBError {
     fn description(&self) -> &str {
         &self.desc
+    }
+}
+
+impl std::convert::From<postgres::error::Error> for DBError {
+    fn from(error: postgres::error::Error) -> DBError {
+        DBError::new(&format!("PostgreSQL Error: {}", error))
     }
 }
 
@@ -291,14 +298,20 @@ pub fn insert_entry(
             bank_account,
             ts,
             amount,
-            currency
+            currency,
+            deleted,
+            created,
+            modified
         ) values (
             nextval('entry_seq'),
             $1,                -- account
             $2,                -- bank_account
             $3,                -- ts
             $4::text::numeric, -- amount
-            $5                 -- currency
+            $5,                -- currency
+            false,
+            current_timestamp,
+            current_timestamp
         )",
         &[&account, &bank_account, &ts, &amount_str, &currency]) {
         Ok(_) => Ok(()),
@@ -309,8 +322,10 @@ pub fn insert_entry(
 /// Get CashLog entries for given account id.
 /// Currently amount is String on Rust side - probably should be pair
 /// of ints or something.
+/// Returns only those entries that were not deleted (are not marked deleted).
 pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<Vec<Entry>, DBError> {
-    let sql = "select
+    let sql =
+        "select
             id,
             bank_account,
             amount::text,
@@ -318,6 +333,7 @@ pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<V
             ts
         from entry
         where account = $1
+        and deleted = false
         order by ts desc";
     match conn.query(sql, &[&account_id]) {
         Ok(rows) => {
@@ -335,4 +351,13 @@ pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<V
             Err(DBError::new(&e.to_string()))
         }
     }
+}
+
+/// Delete entry.
+pub fn delete_entry(conn: &mut postgres::Connection, account_id: i64, entry_id: i64) -> Result<(), DBError> {
+    conn.execute(
+        "update entry set deleted = true, modified = current_timestamp
+        where account = $1 and id = $2",
+        &[&account_id, &entry_id])?;
+    Ok(())
 }

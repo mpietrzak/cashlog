@@ -72,7 +72,10 @@ create table entry (
     bank_account varchar(32) not null,
     ts timestamp without time zone not null,
     amount numeric not null,
-    currency varchar(3) not null
+    currency varchar(3) not null,
+    deleted bool not null default false,
+    created timestamp without time zone not null,
+    modified timestamp without time zone not null
 );
 
 -- Most of the time we'll be querying by user account, and

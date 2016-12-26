@@ -16,6 +16,7 @@ pub fn tmpl_main(title: &str, entries: &Vec<Entry>) -> maud::Markup {
                     th "account"
                     th "amount"
                     th "currency"
+                    th "commands"
                 }
             }
             tbody {
@@ -25,6 +26,7 @@ pub fn tmpl_main(title: &str, entries: &Vec<Entry>) -> maud::Markup {
                         td (entry.bank_account)
                         td (entry.amount)
                         td (entry.currency)
+                        td a href=(format!("delete?id={}", entry.id)) "delete"
                     }
                 }
             }

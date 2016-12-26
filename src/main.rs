@@ -12,6 +12,7 @@ extern crate lettre;
 extern crate logger;
 extern crate maud;
 extern crate params;
+extern crate plugin;
 extern crate postgres;
 extern crate psutil;
 extern crate router;
@@ -90,6 +91,7 @@ fn main() {
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
     router.get("/add", page::add::handle_add, "add");
+    router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/logout", page::logout::handle_get_logout, "logout");
     router.get("/new-session", page::new_session::handle_new_session, "new-session");
     router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
