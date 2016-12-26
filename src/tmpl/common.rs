@@ -3,6 +3,8 @@ use maud::Markup;
 use maud::PreEscaped;
 use psutil;
 
+use util::human_bytes;
+
 pub fn tmpl_base(title: &str, content: Markup) -> Markup {
     html! {
         (PreEscaped("<!DOCTYPE html>"))
@@ -23,7 +25,7 @@ pub fn tmpl_base(title: &str, content: Markup) -> Markup {
 fn tmpl_foot() -> Markup {
     let pid = psutil::getpid();
     let mem_info = if let Ok(mem) = psutil::process::Memory::new(pid) {
-        (format!("Memory usage: {}.", mem.resident))
+        (format!("Memory usage: {}.", human_bytes(mem.resident)))
     } else {
         String::from("")
     };
