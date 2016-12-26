@@ -145,6 +145,14 @@ fn tmpl_css() -> Markup {
 }
 
 fn tmpl_head(title: &str) -> Markup {
+    let title = {
+        let lt = title.to_lowercase();
+        if !&lt.starts_with("cashlog ") {
+            format!("CashLog :: {}", title)
+        } else {
+            title.to_string()
+        }
+    };
     html! {
         head {
             title (title)
