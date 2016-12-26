@@ -11,8 +11,7 @@ pub fn tmpl_bank_accounts(bank_accounts: &Vec<BankAccountInfo>) -> Markup {
                 thead {
                     tr {
                         th "account"
-                        th "amount"
-                        th "currency"
+                        th colspan="2" "amount"
                     }
                 }
                 tbody {

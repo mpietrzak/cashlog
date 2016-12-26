@@ -14,9 +14,8 @@ pub fn tmpl_main(title: &str, entries: &Vec<Entry>) -> maud::Markup {
                 tr {
                     th "ts"
                     th "account"
-                    th "amount"
-                    th "currency"
-                    th "commands"
+                    th colspan="2" "amount"
+                    th ""
                 }
             }
             tbody {
