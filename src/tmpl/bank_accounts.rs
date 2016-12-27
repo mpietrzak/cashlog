@@ -3,6 +3,7 @@ use maud::Markup;
 
 use model::BankAccountInfo;
 use tmpl::common::tmpl_base;
+use util;
 
 pub fn tmpl_bank_accounts(bank_accounts: &Vec<BankAccountInfo>) -> Markup {
     let content = html! {
@@ -12,6 +13,7 @@ pub fn tmpl_bank_accounts(bank_accounts: &Vec<BankAccountInfo>) -> Markup {
                     tr {
                         th "account"
                         th colspan="2" "amount"
+                        th "updated"
                     }
                 }
                 tbody {
@@ -20,6 +22,7 @@ pub fn tmpl_bank_accounts(bank_accounts: &Vec<BankAccountInfo>) -> Markup {
                             td (bank_account_info.bank_account)
                             td (bank_account_info.amount)
                             td (bank_account_info.currency)
+                            td (util::format_ts(bank_account_info.ts))
                         }
                     }
                 }

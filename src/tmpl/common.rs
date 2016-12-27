@@ -119,6 +119,7 @@ fn tmpl_css() -> Markup {
 
                 table.data {
                     border-collapse: collapse;
+                    font-size: 80%;
                 }
 
                 table.data > thead > tr > th {
