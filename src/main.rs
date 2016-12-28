@@ -15,6 +15,8 @@ extern crate params;
 extern crate plugin;
 extern crate postgres;
 extern crate psutil;
+extern crate r2d2;
+extern crate r2d2_postgres;
 extern crate router;
 extern crate time;
 extern crate url;
@@ -90,7 +92,7 @@ fn main() {
     debug!("Config loaded:\n{:?}", conf);
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
-    router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");   
+    router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");
     router.get("/add", page::add::handle_add, "add");
     router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/logout", page::logout::handle_get_logout, "logout");
@@ -107,6 +109,9 @@ fn main() {
     let conf_extension_middleware = ConfExtensionMiddleware::new(conf);
     chain.link_before(logger_before);
     chain.link_before(conf_extension_middleware);
+    let pool = common::create_database_pool();
+    let database_pool_middleware = common::DatabasePoolMiddleware { pool: pool };
+    chain.link_before(database_pool_middleware);
     chain.link_after(logger_after);
     let listen_addr = format!("localhost:{}", port.unwrap_or(14080));
     if let Err(e) = Iron::new(chain).http(&*listen_addr) {

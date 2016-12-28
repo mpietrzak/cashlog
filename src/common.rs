@@ -8,6 +8,8 @@ use lettre::email::EmailBuilder;
 use lettre::transport::EmailTransport;
 use lettre::transport::smtp::SmtpTransportBuilder;
 use postgres;
+use r2d2;
+use r2d2_postgres;
 use url;
 
 use db;
@@ -50,6 +52,35 @@ impl From<String> for Error {
     fn from(err: String) -> Error {
         Error::new(&format!("Error: {}", err))
     }
+}
+
+/// Used only as a key to get the database connection middleware.
+pub struct DatabasePool;
+
+impl iron::typemap::Key for DatabasePool {
+    type Value = r2d2::Pool<r2d2_postgres::PostgresConnectionManager>;
+}
+
+pub struct DatabasePoolMiddleware {
+    pub pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager>
+}
+
+impl iron::BeforeMiddleware for DatabasePoolMiddleware {
+    fn before(&self, request: &mut iron::Request) -> iron::IronResult<()> {
+        let pool = self.pool.clone();
+        request.extensions.insert::<DatabasePool>(pool);
+        Ok(())
+    }
+}
+
+/// Create database pool, die if can't create.
+pub fn create_database_pool() -> r2d2::Pool<r2d2_postgres::PostgresConnectionManager> {
+    let config = r2d2::Config::default();
+    let manager = r2d2_postgres::PostgresConnectionManager::new(
+        "postgres://cashlog@localhost",
+        r2d2_postgres::TlsMode::None).unwrap();
+    let pool = r2d2::Pool::new(config, manager).unwrap();
+    pool
 }
 
 /// Extract session id from request cookies.
