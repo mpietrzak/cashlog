@@ -13,6 +13,7 @@ lettre = ">=0.6"
 log = ">=0.3"
 maud = { version = "*", features = ["iron"] }
 maud_macros = "*"
+mime = "*"
 params = "*"
 plugin = "*"
 postgres = { version = ">0.12", features = ["with-time"] }

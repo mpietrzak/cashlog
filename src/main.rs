@@ -23,6 +23,7 @@ extern crate url;
 extern crate uuid;
 extern crate rustc_serialize;
 extern crate toml;
+extern crate mime;
 
 // use std::path;
 use iron::prelude::*;
@@ -95,6 +96,8 @@ fn main() {
     router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");
     router.get("/add", page::add::handle_add, "add");
     router.get("/delete", page::delete::handle_delete, "delete");
+    router.get("/export", page::export::handle_export, "export");
+    router.get("/export/:filename", page::export::handle_export_file, "export-file");
     router.get("/logout", page::logout::handle_get_logout, "logout");
     router.get("/new-session", page::new_session::handle_new_session, "new-session");
     router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");

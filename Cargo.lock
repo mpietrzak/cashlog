@@ -10,6 +10,7 @@ dependencies = [
  "logger 0.2.0 (git+https://github.com/iron/logger.git)",
  "maud 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "maud_macros 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "params 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugin 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "postgres 0.13.4 (registry+https://github.com/rust-lang/crates.io-index)",
