@@ -95,6 +95,7 @@ fn main() {
     router.get("/", page::main::handle_main, "main");
     router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");
     router.get("/add", page::add::handle_add, "add");
+    router.get("/currency", page::currency::handle_currency, "currency");
     router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/export", page::export::handle_export, "export");
     router.get("/export/:filename", page::export::handle_export_file, "export-file");

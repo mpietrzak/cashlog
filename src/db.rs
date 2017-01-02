@@ -8,6 +8,7 @@ use time::Timespec;
 
 use model::AccountInfo;
 use model::BankAccountInfo;
+use model::CurrencyInfo;
 use model::Entry;
 
 #[derive(Debug)]
@@ -376,7 +377,9 @@ pub fn get_bank_accounts(conn: &mut postgres::Connection, account_id: i64) -> Re
                     (
                         select id
                         from entry
-                        where entry.bank_account = bank_account.bank_account
+                        where
+                            entry.bank_account = bank_account.bank_account
+                            and entry.account = $1
                         order by ts desc limit 1
                     ) as id
                 from
@@ -402,4 +405,46 @@ pub fn get_bank_accounts(conn: &mut postgres::Connection, account_id: i64) -> Re
         Err(e) => Err(DBError::from(e))
     }
 
+}
+
+pub fn get_currency_info(conn: &mut postgres::Connection, account_id: i64) -> Result<Vec<CurrencyInfo>, DBError> {
+    let sql = "
+        select
+            -- Finally, group those selected entries to produce summaries.
+            currency,
+            sum(amount)::text,
+            max(ts)
+        from
+            (
+                select
+                    -- Second, find last entry id for given bank account.
+                    -- Find only id, because it is a subquery.
+                    (
+                        select id
+                        from entry
+                        where
+                            entry.bank_account = bank_account.bank_account
+                            and entry.account = $1
+                        order by ts desc
+                        limit 1
+                    ) as id
+                from
+                    -- First select bank account names for given user.
+                    (
+                        select distinct bank_account
+                        from entry
+                        where account = $1
+                    ) as bank_account
+            ) as last_bank_account_entry_id
+            -- Third add entry by entry id.
+            join entry as last_bank_account_entry on (last_bank_account_entry.id = last_bank_account_entry_id.id)
+        group by currency
+        order by currency";
+    let rows = conn.query(sql, &[&account_id])?;
+    Ok(rows.iter().map(
+        |row| CurrencyInfo {
+            currency: row.get(0),
+            amount: row.get(1),
+            ts: row.get(2)
+        }).collect())
 }

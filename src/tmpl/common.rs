@@ -170,6 +170,7 @@ fn tmpl_menu(logged_in: bool) -> Markup {
         div.menu {
             div.menu-item { "[ " a href="/" "Table" " ]" }
             div.menu-item { "[ " a href="/accounts" "Accounts" " ]" }
+            div.menu-item { "[ " a href="/currency" "Currency" " ]" }
             div.menu-item { "[ " a href="/add" "Add" " ]" }
             div.menu-item { "[ " a href="/export" "Export" " ]" }
             div.menu-spacer ""

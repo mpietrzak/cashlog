@@ -9,6 +9,13 @@ pub struct BankAccountInfo {
     pub ts: Timespec
 }
 
+/// Details by currency.
+pub struct CurrencyInfo {
+    pub currency: String,
+    pub amount: String,
+    pub ts: Timespec
+}
+
 pub struct Entry {
     pub bank_account: String,
     pub amount: String,
