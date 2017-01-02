@@ -42,15 +42,6 @@ impl std::convert::From<postgres::error::Error> for DBError {
     }
 }
 
-/// Connect to DB.
-/// TODO: Should return Error.
-pub fn connect() -> postgres::Connection {
-    postgres::Connection::connect(
-        "postgres://cashlog@localhost/cashlog",
-        postgres::TlsMode::None
-    ).unwrap()
-}
-
 pub fn get_session_value(conn: &mut postgres::Connection, session_key: &str, name: &str) -> Option<String> {
     let sql = "select value from session where key = $1 and name = $2";
     let r_rows = conn.query(sql, &[&session_key, &name]);

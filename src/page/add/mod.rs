@@ -15,7 +15,7 @@ use util::get_str;
 use util::get_ts;
 
 pub fn handle_add(request: &mut Request) -> IronResult<Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(request));
     if common::get_session_account_id(&mut conn, request).is_none() {
         return Ok(itry!(common::redirect(request, "/new-session")))
     }
@@ -27,7 +27,7 @@ pub fn handle_add(request: &mut Request) -> IronResult<Response> {
 }
 
 pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(request));
     let account_id = match common::get_session_account_id(&mut conn, request) {
         Some(id) => id,
         None => return Ok(Response::with(iron::status::Forbidden))

@@ -7,7 +7,7 @@ use common;
 use db;
 
 pub fn handle_delete(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(request));
     let redirect_response = itry!(common::redirect(request, "."));
     let acc_id = match common::get_session_account_id(&mut conn, request) {
         Some(acc_id) => acc_id,

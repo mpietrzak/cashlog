@@ -11,7 +11,7 @@ use tmpl;
 
 
 pub fn handle_main(req: &mut Request) -> IronResult<Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(req));
     let o_account_id = common::get_session_account_id(&mut conn, req);
     if let Some(account_id) = o_account_id {
         let entries: Vec<Entry> = itry!(db::get_entries(&mut conn, account_id));

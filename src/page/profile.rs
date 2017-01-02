@@ -8,7 +8,7 @@ use db;
 use tmpl;
 
 pub fn handle_profile(req: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(req));
     match common::get_session_account_id(&mut conn, req) {
         Some(acc_id) => {
             match itry!(db::get_user_account_info(&mut conn, acc_id)) {

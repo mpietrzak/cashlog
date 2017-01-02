@@ -54,6 +54,12 @@ impl From<String> for Error {
     }
 }
 
+impl From<r2d2::GetTimeout> for Error {
+    fn from(err: r2d2::GetTimeout) -> Error {
+        Error::new(&format!("Database Error: {}", err))
+    }
+}
+
 /// Used only as a key to get the database connection middleware.
 pub struct DatabasePool;
 
@@ -81,6 +87,12 @@ pub fn create_database_pool() -> r2d2::Pool<r2d2_postgres::PostgresConnectionMan
         r2d2_postgres::TlsMode::None).unwrap();
     let pool = r2d2::Pool::new(config, manager).unwrap();
     pool
+}
+
+pub fn get_pooled_db_connection(request: &mut iron::Request)
+        -> Result<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, Error> {
+    let pool = request.extensions.get::<DatabasePool>().unwrap().clone();
+    Ok(pool.get()?)
 }
 
 /// Extract session id from request cookies.

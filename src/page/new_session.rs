@@ -38,7 +38,7 @@ pub fn handle_new_session(_: &mut Request) -> IronResult<Response> {
 ///     setup the session.
 pub fn handle_post_new_session(r: &mut Request) -> IronResult<Response> {
     let o_email = handle_post_new_session_form(r);
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(r));
     match o_email {
         Some(email) => {
             let account_id: i64 = match db::get_account_id_by_email(&mut conn, &email) {
@@ -112,7 +112,7 @@ pub fn get_request_token(r: &Request) -> Option<String> {
 /// If token looks good, then we'll give user's browser the session cookie.
 /// We also need to mark token as consumed.
 pub fn handle_get_new_session_token(r: &mut Request) -> IronResult<Response> {
-    let mut conn = db::connect();
+    let mut conn = itry!(common::get_pooled_db_connection(r));
     let mk = get_request_token(r);
     match mk {
         Some(login_token) => {
