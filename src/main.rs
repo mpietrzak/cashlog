@@ -104,6 +104,7 @@ fn main() {
     router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
     router.get("/profile", page::profile::handle_profile, "profile");
     router.post("/add", page::add::handle_post_add, "add");
+    router.post("/logout", page::logout::handle_post_logout, "logout");
     router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
     // let mut mount = mount::Mount::new();
     // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));

@@ -1,15 +1,37 @@
 
 use iron;
+use params;
+use plugin::Pluggable;
 
 use db;
 use common;
+use tmpl;
 
-pub fn handle_get_logout(req: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    if let Ok(ms) = common::get_session_id(req) {
-        if let Some(s) = ms {
-            let mut conn = itry!(common::get_pooled_db_connection(req));
-            itry!(db::delete_session(&mut conn, &s));
+pub fn handle_get_logout(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
+    let body = tmpl::logout::tmpl_logout();
+    Ok(iron::Response::with((iron::status::Ok, body)))
+}
+
+fn get_confirm(request: &mut iron::Request) -> Option<String> {
+    match request.get_ref::<params::Params>() {
+        Ok(map) => match map.get("confirm") {
+            Some(&params::Value::String(ref s)) => Some(s.clone()),
+            _ => None
+        },
+        _ => None
+    }
+}
+
+pub fn handle_post_logout(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
+    if let Some(session_id) = itry!(common::get_session_id(request)) {
+        let confirm = get_confirm(request);
+        match confirm {
+            Some(ref confirm) if confirm == "yes" => {
+                let mut conn = itry!(common::get_pooled_db_connection(request));
+                itry!(db::delete_session(&mut conn, &session_id));
+            }
+            _ => ()
         }
     }
-    Ok(itry!(common::redirect(req, "/")))
+    Ok(itry!(common::redirect(request, "/")))
 }
