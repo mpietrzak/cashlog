@@ -6,6 +6,7 @@
 #[macro_use] extern crate log;
 // extern crate mount;
 // extern crate staticfile;
+extern crate cookie;
 extern crate env_logger;
 extern crate hyper;
 extern crate lettre;

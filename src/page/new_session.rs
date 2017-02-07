@@ -1,14 +1,14 @@
 
 //! Handle login.
 
-use iron::headers::CookiePair;
-use iron::headers::CookieJar;
+use cookie::Cookie;
 use iron::headers::SetCookie;
 use iron::mime::Mime;
-use iron::prelude::*;
 use iron;
 use params::Params;
+use plugin::Pluggable;
 use router::Router;
+use time::Duration;
 use uuid;
 
 use common;
@@ -19,10 +19,10 @@ use tmpl::new_session::tmpl_new_session_email_sent;
 use tmpl::new_session::tmpl_new_session_result;
 use util::get_str;
 
-pub fn handle_new_session(_: &mut Request) -> IronResult<Response> {
-    let resp_html = tmpl_new_session();
-    let resp_content_type = "text/html".parse::<Mime>().unwrap();
-    Ok(Response::with((resp_content_type, iron::status::Ok, resp_html)))
+pub fn handle_new_session(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
+    let resp_html = tmpl_new_session().into_string();
+    let ct = "text/html".parse::<Mime>().unwrap();
+    Ok(iron::response::Response::with((iron::status::Ok, ct, resp_html)))
 }
 
 /// Use clicked "yes" on login via email form.
@@ -36,7 +36,7 @@ pub fn handle_new_session(_: &mut Request) -> IronResult<Response> {
 /// - send an email to given user
 ///   - if user is in fact able to read email, then they'll be able to
 ///     setup the session.
-pub fn handle_post_new_session(r: &mut Request) -> IronResult<Response> {
+pub fn handle_post_new_session(r: &mut iron::Request) -> iron::IronResult<iron::Response> {
     let o_email = handle_post_new_session_form(r);
     let mut conn = itry!(common::get_pooled_db_connection(r));
     match o_email {
@@ -76,33 +76,27 @@ pub fn handle_post_new_session(r: &mut Request) -> IronResult<Response> {
                 &email,
                 &token,
                 use_email));
-            // let resp_content_type = "text/html".parse::<Mime>().unwrap();
-            let resp_html = tmpl_new_session_email_sent();
-            Ok(Response::with((iron::status::Ok, resp_html)))
+            let resp_content_type = "text/html".parse::<Mime>().unwrap();
+            let resp_html = tmpl_new_session_email_sent().into_string();
+            Ok(iron::response::Response::with((iron::status::Ok, resp_content_type, resp_html)))
         }
         None => {
-         let resp_html = tmpl_new_session();
-         Ok(Response::with((iron::status::Ok, resp_html)))
+         let resp_html = tmpl_new_session().into_string();
+         Ok(iron::Response::with((iron::status::Ok, "text/html".parse::<Mime>().unwrap(), resp_html)))
         }
     }
 }
 
-fn set_session_cookie(resp: &mut Response, session_key: &str) -> Result<(), common::Error> {
-    let mut session_cookie = CookiePair::new(
-        "session".to_string(),
-        session_key.to_string());
-    session_cookie.max_age = Some(20 * 365 * 24 * 3600);
-    session_cookie.path = Some("/".to_string());
-    let jar = CookieJar::new(common::COOKIE_KEY);
-    let signed_jar = jar.signed();
-    signed_jar.add(session_cookie);
-    // resp.headers.set(SetCookie(vec![session_cookie]));
-    let set_cookie_header = jar.delta();
-    resp.headers.set(SetCookie(set_cookie_header));
+fn set_session_cookie(resp: &mut iron::Response, session_key: &str) -> Result<(), common::Error> {
+    let session_cookie = Cookie::build("session", String::from(session_key))
+        .path("/")
+        .max_age(Duration::days(365))
+        .finish();
+    resp.headers.set(SetCookie(vec![session_cookie.to_string()]));
     Ok(())
 }
 
-pub fn get_request_token(r: &Request) -> Option<String> {
+pub fn get_request_token(r: &iron::Request) -> Option<String> {
     r.extensions.get::<Router>().unwrap().find("token").map(|s| String::from(s))
 }
 
@@ -111,7 +105,7 @@ pub fn get_request_token(r: &Request) -> Option<String> {
 /// URL contains the token.
 /// If token looks good, then we'll give user's browser the session cookie.
 /// We also need to mark token as consumed.
-pub fn handle_get_new_session_token(r: &mut Request) -> IronResult<Response> {
+pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<iron::Response> {
     let mut conn = itry!(common::get_pooled_db_connection(r));
     let mk = get_request_token(r);
     match mk {
@@ -130,7 +124,8 @@ pub fn handle_get_new_session_token(r: &mut Request) -> IronResult<Response> {
                             &session_key,
                             "account",
                             &format!("{}", account_id)));
-                        let mut resp = iron::Response::with((iron::status::Ok, tmpl_new_session_result(true)));
+                        let ct = "text/html".parse::<Mime>().unwrap();
+                        let mut resp = iron::Response::with((iron::status::Ok, ct, tmpl_new_session_result(true).into_string()));
                         itry!(set_session_cookie(&mut resp, &session_key));
                         Ok(resp)
                     }
@@ -139,13 +134,14 @@ pub fn handle_get_new_session_token(r: &mut Request) -> IronResult<Response> {
         }
         None => {
             debug!("No token param found in URL.");
-            Ok(iron::Response::with((iron::status::Ok, tmpl_new_session_result(false))))
+            let ct = "text/html".parse::<Mime>().unwrap();
+            Ok(iron::Response::with((iron::status::Ok, ct, tmpl_new_session_result(false).into_string())))
         }
     }
 }
 
 /// Extract stuff from the posted form.
-fn handle_post_new_session_form(r: &mut Request) -> Option<String> {
+fn handle_post_new_session_form(r: &mut iron::Request) -> Option<String> {
     let params = r.get_ref::<Params>().unwrap();
     let r_email = get_str(params, "email");
     match r_email {

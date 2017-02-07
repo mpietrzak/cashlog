@@ -1,5 +1,6 @@
 
 use iron;
+use mime::Mime;
 use params;
 use plugin::Pluggable;
 
@@ -8,8 +9,9 @@ use common;
 use tmpl;
 
 pub fn handle_get_logout(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let body = tmpl::logout::tmpl_logout();
-    Ok(iron::Response::with((iron::status::Ok, body)))
+    let body = tmpl::logout::tmpl_logout().into_string();
+    let ct = "text/html".parse::<Mime>().unwrap();
+    Ok(iron::Response::with((iron::status::Ok, ct, body)))
 }
 
 fn get_confirm(request: &mut iron::Request) -> Option<String> {

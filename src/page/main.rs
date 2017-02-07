@@ -1,12 +1,13 @@
 
-use iron::prelude::*;
 use iron;
-use hyper;
+use iron::Request;
+use iron::Response;
+use iron::IronResult;
+use mime::Mime;
 
 use model::Entry;
 use common;
 use db;
-use model;
 use tmpl;
 
 
@@ -15,22 +16,10 @@ pub fn handle_main(req: &mut Request) -> IronResult<Response> {
     let o_account_id = common::get_session_account_id(&mut conn, req);
     if let Some(account_id) = o_account_id {
         let entries: Vec<Entry> = itry!(db::get_entries(&mut conn, account_id));
-        let resp_html = tmpl::main::tmpl_main("Main", &entries);
-        Ok(Response::with((iron::status::Ok, resp_html)))
+        let resp_html = tmpl::main::tmpl_main("Main", &entries).into_string();
+        let ct = "text/html".parse::<Mime>().unwrap();
+        Ok(Response::with((iron::status::Ok, ct, resp_html)))
     } else {
-        let o_conf = req.extensions.get::<model::Config>();
-        let o_base_url: Option<String> = o_conf.map_or(None, |c| c.base_url.clone());
-        let target_url: iron::Url = if let Some(conf_base_url) = o_base_url {
-            let base_url = hyper::Url::parse(&conf_base_url).unwrap();
-            let new_url = base_url.join("/new-session").unwrap();
-            let new_iron_url = iron::Url::from_generic_url(new_url).unwrap();
-            new_iron_url
-        } else {
-            let req_url = req.url.clone();
-            let new_url = req_url.into_generic_url().join("/new-session").unwrap();
-            let new_iron_url = iron::Url::from_generic_url(new_url).unwrap();
-            new_iron_url
-        };
-        Ok(Response::with((iron::status::Found, iron::modifiers::Redirect(target_url))))
+        Ok(itry!(common::redirect(req, "new-session")))
     }
 }

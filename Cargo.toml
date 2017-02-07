@@ -6,6 +6,7 @@ authors = ["Maciej Pietrzak"]
 [dependencies]
 # mount = ">=0.2"
 # staticfile = "*"
+cookie = "^0.6"
 env_logger = ">=0.3"
 hyper = ">=0.9"
 iron = ">=0.3"
@@ -24,6 +25,6 @@ router = ">=0.1.1"
 time = "*"
 toml = ">=0.2"
 url = { git = "https://github.com/servo/rust-url" }
-uuid = "*"
+uuid = { version = "^0.4", features = ["v4"] }
 logger = { git = "https://github.com/iron/logger.git" }
 rustc-serialize = ">=0.3"

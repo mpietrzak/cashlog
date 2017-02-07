@@ -3,6 +3,8 @@
 
 use std;
 
+use cookie;
+use hyper::header::Cookie;
 use iron;
 use lettre::email::EmailBuilder;
 use lettre::transport::EmailTransport;
@@ -60,6 +62,12 @@ impl From<r2d2::GetTimeout> for Error {
     }
 }
 
+impl From<cookie::ParseError> for Error {
+    fn from(err: cookie::ParseError) -> Error {
+        Error::new(&format!("Cookie Parse Error: {}", err))
+    }
+}
+
 /// Used only as a key to get the database connection middleware.
 pub struct DatabasePool;
 
@@ -95,14 +103,25 @@ pub fn get_pooled_db_connection(request: &mut iron::Request)
     Ok(pool.get()?)
 }
 
+pub fn to_cookie_jar(cookies: &Vec<String>) -> Result<cookie::CookieJar<'static>, Error> {
+    let mut jar = cookie::CookieJar::new(COOKIE_KEY);
+    for cookie_str in cookies.iter() {
+        let s = cookie_str.clone();
+        let ss = s.as_str();
+        let cookie = cookie::Cookie::parse(ss)?.into_owned();
+        jar.add_original(cookie.clone());
+    }
+    Ok(jar)
+}
+
 /// Extract session id from request cookies.
 pub fn get_session_id(request: &mut iron::Request) -> Result<Option<String>, Error> {
-    match request.headers.get::<iron::headers::Cookie>() {
+    let cookie: Option<&Cookie> = request.headers.get::<iron::headers::Cookie>();
+    match cookie {
         Some(cookie) => {
-            let jar = cookie.to_cookie_jar(COOKIE_KEY);
-            let signed_jar = jar.signed();
-            match signed_jar.find("session") {
-                Some(c) => Ok(Some(c.value)),
+            let jar = to_cookie_jar(cookie)?;
+            match jar.find("session") {
+                Some(c) => Ok(Some(String::from(c.value()))),
                 None => Ok(None)
             }
         }

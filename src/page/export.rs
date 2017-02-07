@@ -1,5 +1,6 @@
 
 use iron;
+use mime::Mime;
 
 use common;
 use db;
@@ -33,8 +34,9 @@ fn get_export_filename_request_param(request: &iron::Request) -> Option<String> 
 /// Show export page.
 pub fn handle_export(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
     let base_url = itry!(common::get_base_url(&request));
-    let r = tmpl::export::tmpl_export(&base_url);
-    Ok(iron::Response::with((iron::status::Ok, r)))
+    let r = tmpl::export::tmpl_export(&base_url).into_string();
+    let ct = "text/html".parse::<Mime>().unwrap();
+    Ok(iron::Response::with((iron::status::Ok, ct, r)))
 }
 
 /// Generate export file.

@@ -1,5 +1,6 @@
 
 use iron;
+use mime::Mime;
 
 use common;
 use db;
@@ -12,6 +13,7 @@ pub fn handle_bank_accounts(request: &mut iron::Request) -> iron::IronResult<iro
         None => return Ok(itry!(common::redirect(request, ".")))
     };
     let bank_accounts = itry!(db::get_bank_accounts(&mut conn, acc_id));
-    let content = tmpl::bank_accounts::tmpl_bank_accounts(&bank_accounts);
-    Ok(iron::Response::with((iron::status::Ok, content)))
+    let content = tmpl::bank_accounts::tmpl_bank_accounts(&bank_accounts).into_string();
+    let ct = "text/html".parse::<Mime>().unwrap();
+    Ok(iron::Response::with((iron::status::Ok, ct, content)))
 }

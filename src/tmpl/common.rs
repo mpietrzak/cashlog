@@ -1,4 +1,5 @@
 
+use maud;
 use maud::Markup;
 use maud::PreEscaped;
 use psutil;
@@ -7,7 +8,7 @@ use util::human_bytes;
 
 pub fn tmpl_base(title: &str, content: Markup) -> Markup {
     html! {
-        (PreEscaped("<!DOCTYPE html>"))
+        (maud::DOCTYPE)
         html {
             (tmpl_head(title))
             body {

@@ -4,6 +4,7 @@
 use iron::IronResult;
 use iron::Response;
 use iron;
+use mime::Mime;
 
 use common;
 use db;
@@ -17,6 +18,7 @@ pub fn handle_currency(request: &mut iron::Request) -> IronResult<Response> {
         None => return Ok(itry!(common::redirect(request, ".")))
     };
     let currency_info = itry!(db::get_currency_info(&mut conn, account_id));
-    let content = tmpl_currency(currency_info);
-    Ok(Response::with((iron::status::Ok, content)))
+    let content = tmpl_currency(currency_info).into_string();
+    let ct = "text/html".parse::<Mime>().unwrap();
+    Ok(Response::with((iron::status::Ok, ct, content)))
 }

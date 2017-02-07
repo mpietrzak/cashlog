@@ -2,6 +2,7 @@
 //! The profile page.
 
 use iron;
+use mime::Mime;
 
 use common;
 use db;
@@ -16,8 +17,9 @@ pub fn handle_profile(req: &mut iron::Request) -> iron::IronResult<iron::Respons
                     Ok(iron::Response::with(iron::status::NotFound))
                 }
                 Some(acc) => {
-                    let content = tmpl::profile::tmpl_profile(&acc);
-                    Ok(iron::Response::with((iron::status::Ok, content)))
+                    let content = tmpl::profile::tmpl_profile(&acc).into_string();
+                    let ct = "text/html".parse::<Mime>().unwrap();
+                    Ok(iron::Response::with((iron::status::Ok, ct, content)))
                 }
             }
         }

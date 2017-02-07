@@ -3,9 +3,12 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 
 use iron::mime::Mime;
-use iron::prelude::*;
 use iron;
+use iron::Request;
+use iron::IronResult;
+use iron::Response;
 use params::Params;
+use plugin::Pluggable; // get_ref
 
 use common;
 use db;
@@ -22,8 +25,11 @@ pub fn handle_add(request: &mut Request) -> IronResult<Response> {
     let resp_content_type = "text/html".parse::<Mime>().unwrap();
     let empty_btree_map = BTreeMap::new();
     let empty_hash_map = HashMap::new();
-    let resp_html = tmpl_add("Add", &empty_btree_map, &empty_hash_map);
-    Ok(Response::with((resp_content_type, iron::status::Ok, resp_html)))
+    let resp_html = tmpl_add("Add", &empty_btree_map, &empty_hash_map).into_string();
+    Ok(iron::response::Response::with((
+        resp_content_type,
+        iron::status::Ok,
+        resp_html)))
 }
 
 pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
@@ -84,8 +90,9 @@ pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
                 println!("e: {}", e);
                 errors.insert("ts", e.to_string());
             }
-            let h = tmpl_add("Add", &values, &errors);
-            Ok(Response::with((iron::status::Ok, h)))
+            let h = tmpl_add("Add", &values, &errors).into_string();
+            let ct = "text/html".parse::<Mime>().unwrap();
+            Ok(Response::with((iron::status::Ok, ct, h)))
         }
     }
 }
