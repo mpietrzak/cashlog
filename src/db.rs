@@ -371,6 +371,7 @@ pub fn get_bank_accounts(conn: &mut postgres::Connection, account_id: i64) -> Re
                         where
                             entry.bank_account = bank_account.bank_account
                             and entry.account = $1
+                            and entry.deleted = false
                         order by ts desc limit 1
                     ) as id
                 from
@@ -416,6 +417,7 @@ pub fn get_currency_info(conn: &mut postgres::Connection, account_id: i64) -> Re
                         where
                             entry.bank_account = bank_account.bank_account
                             and entry.account = $1
+                            and entry.deleted = false
                         order by ts desc
                         limit 1
                     ) as id
@@ -424,7 +426,9 @@ pub fn get_currency_info(conn: &mut postgres::Connection, account_id: i64) -> Re
                     (
                         select distinct bank_account
                         from entry
-                        where account = $1
+                        where
+                            account = $1
+                            and deleted = false
                     ) as bank_account
             ) as last_bank_account_entry_id
             -- Third add entry by entry id.
