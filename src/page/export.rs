@@ -33,6 +33,12 @@ fn get_export_filename_request_param(request: &iron::Request) -> Option<String> 
 
 /// Show export page.
 pub fn handle_export(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
+    let pool = request.extensions.get::<common::DatabasePool>().unwrap().clone();
+    let mut conn = pool.get().unwrap();
+    match common::get_session_account_id(&mut conn, request) {
+        Some(acc_id) => (),
+        None => return Ok(itry!(common::redirect(request, ".")))
+    };
     let base_url = itry!(common::get_base_url(&request));
     let r = tmpl::export::tmpl_export(&base_url).into_string();
     let ct = "text/html".parse::<Mime>().unwrap();
