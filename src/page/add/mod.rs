@@ -20,7 +20,7 @@ use util::get_ts;
 pub fn handle_add(request: &mut Request) -> IronResult<Response> {
     let mut conn = itry!(common::get_pooled_db_connection(request));
     if common::get_session_account_id(&mut conn, request).is_none() {
-        return Ok(itry!(common::redirect(request, "/new-session")))
+        return Ok(itry!(common::redirect(request, "new-session")))
     }
     let resp_content_type = "text/html".parse::<Mime>().unwrap();
     let empty_btree_map = BTreeMap::new();
