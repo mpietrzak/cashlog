@@ -4,6 +4,7 @@
 
 #[macro_use] extern crate iron;
 #[macro_use] extern crate log;
+#[macro_use] extern crate serde_derive;
 // extern crate mount;
 // extern crate staticfile;
 extern crate cookie;
@@ -22,13 +23,11 @@ extern crate router;
 extern crate time;
 extern crate url;
 extern crate uuid;
-extern crate rustc_serialize;
 extern crate toml;
 extern crate mime;
 
 // use std::path;
 use iron::prelude::*;
-use rustc_serialize::Decodable;
 use std::io::Read;
 
 mod common;
@@ -58,15 +57,18 @@ fn load_config_or_exit() -> model::Config {
             std::process::exit(1);
         }
     }
-    let value: toml::Value = toml::Parser::new(&toml_source).parse().unwrap().get("config").unwrap().clone();
-    let mut decoder = toml::Decoder::new(value);
-    let conf_result = model::Config::decode(&mut decoder);
-    match conf_result {
+    // This inline struct is only so that I can have top level "config" key
+    // in toml config file, without having to go through Value object.
+    #[derive(Debug, Deserialize)]
+    struct ConfigWrapper {
+        config: model::Config,
+    }
+    match toml::from_str::<ConfigWrapper>(&toml_source) {
         Err(decode_error) => {
             debug!("Decode error: {}.", decode_error);
             std::process::exit(1);
         }
-        Ok(conf) => conf
+        Ok(conf) => conf.config
     }
 }
 

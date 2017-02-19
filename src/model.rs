@@ -24,7 +24,7 @@ pub struct Entry {
     pub ts: Timespec
 }
 
-#[derive(Clone, Debug, RustcDecodable)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub base_url: Option<String>,
     pub use_email: bool,
