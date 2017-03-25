@@ -7,6 +7,9 @@ use util;
 
 pub fn tmpl_bank_accounts(bank_accounts: &Vec<BankAccountInfo>) -> Markup {
     let content = html! {
+        p style="font-size: small" {
+            "[ " a href="add-bank-account" "Add Bank Account" " ]"
+        }
         table class="data" {
             thead {
                 tr {

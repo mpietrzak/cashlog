@@ -2,9 +2,12 @@
 #![feature(plugin)]
 #![plugin(maud_macros)]
 
-#[macro_use] extern crate iron;
-#[macro_use] extern crate log;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate iron;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde_derive;
 // extern crate mount;
 // extern crate staticfile;
 extern crate cookie;
@@ -46,9 +49,10 @@ fn load_config_or_exit() -> model::Config {
             Ok(f) => f,
             Err(e) => {
                 error!("Failed to open config file {}: {}.", config_filename, e);
-                debug!("Current directory: {}.", std::env::current_dir()
-                    .map(|d| d.to_str().unwrap_or("<unknown>").to_string())
-                    .unwrap_or("<unknown>".to_string()));
+                debug!("Current directory: {}.",
+                       std::env::current_dir()
+                           .map(|d| d.to_str().unwrap_or("<unknown>").to_string())
+                           .unwrap_or("<unknown>".to_string()));
                 std::process::exit(1);
             }
         };
@@ -68,17 +72,17 @@ fn load_config_or_exit() -> model::Config {
             debug!("Decode error: {}.", decode_error);
             std::process::exit(1);
         }
-        Ok(conf) => conf.config
+        Ok(conf) => conf.config,
     }
 }
 
 struct ConfExtensionMiddleware {
-    conf: model::Config
+    conf: model::Config,
 }
 
 impl ConfExtensionMiddleware {
     fn new(conf: model::Config) -> ConfExtensionMiddleware {
-        ConfExtensionMiddleware{conf: conf}
+        ConfExtensionMiddleware { conf: conf }
     }
 }
 
@@ -96,19 +100,35 @@ fn main() {
     debug!("Config loaded:\n{:?}", conf);
     let mut router = router::Router::new();
     router.get("/", page::main::handle_main, "main");
-    router.get("/accounts", page::bank_accounts::handle_bank_accounts, "bank-accounts");
+    router.get("/accounts",
+               page::bank_accounts::handle_bank_accounts,
+               "bank-accounts");
     router.get("/add", page::add::handle_add, "add");
+    router.get("/add-bank-account",
+               page::add_bank_account::handle_get_add_bank_account,
+               "add-bank-account");
     router.get("/currency", page::currency::handle_currency, "currency");
     router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/export", page::export::handle_export, "export");
-    router.get("/export/:filename", page::export::handle_export_file, "export-file");
+    router.get("/export/:filename",
+               page::export::handle_export_file,
+               "export-file");
     router.get("/logout", page::logout::handle_get_logout, "logout");
-    router.get("/new-session", page::new_session::handle_new_session, "new-session");
-    router.get("/new-session/:token", page::new_session::handle_get_new_session_token, "new-session-token");
+    router.get("/new-session",
+               page::new_session::handle_new_session,
+               "new-session");
+    router.get("/new-session/:token",
+               page::new_session::handle_get_new_session_token,
+               "new-session-token");
     router.get("/profile", page::profile::handle_profile, "profile");
     router.post("/add", page::add::handle_post_add, "add");
+    router.post("/add-bank-account",
+               page::add_bank_account::handle_post_add_bank_account,
+               "add-bank-account");
     router.post("/logout", page::logout::handle_post_logout, "logout");
-    router.post("/new-session", page::new_session::handle_post_new_session, "new-session");
+    router.post("/new-session",
+                page::new_session::handle_post_new_session,
+                "new-session");
     // let mut mount = mount::Mount::new();
     // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));
     // mount.mount("/", router);

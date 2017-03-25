@@ -45,25 +45,13 @@ pub fn handle_post_new_session(r: &mut iron::Request) -> iron::IronResult<iron::
                 Ok(oa) => {
                     match oa {
                         Some(a) => a,
-                        None => {
-                            match db::create_account_with_email(&mut conn, &email) {
-                                Ok(id) => id,
-                                Err(e) => {
-                                    /// oops
-                                    return Err(iron::IronError::new(
-                                        e,
-                                        (iron::status::InternalServerError, "Failed to create account")
-                                    ));
-                                }
-                            }
-                        }
+                        None => itry!(db::create_account_with_email(&mut conn, &email)),
                     }
                 }
-                Err(e) => return Err(
-                    iron::IronError::new(
-                        e,
-                        (iron::status::InternalServerError, "Failed to query account")
-                    ))
+                Err(e) => {
+                    return Err(iron::IronError::new(e,
+                                                    (iron::status::InternalServerError, "Failed to query account")))
+                }
             };
             let token: String = uuid::Uuid::new_v4().to_string();
             let use_email: bool = {
@@ -71,33 +59,31 @@ pub fn handle_post_new_session(r: &mut iron::Request) -> iron::IronResult<iron::
             };
             let base_url = itry!(common::get_base_url(r));
             itry!(db::insert_login_token(&mut conn, &account_id, &token));
-            itry!(common::send_email_login_email(
-                &base_url,
-                &email,
-                &token,
-                use_email));
+            itry!(common::send_email_login_email(&base_url, &email, &token, use_email));
             let resp_content_type = "text/html".parse::<Mime>().unwrap();
             let resp_html = tmpl_new_session_email_sent().into_string();
             Ok(iron::response::Response::with((iron::status::Ok, resp_content_type, resp_html)))
         }
         None => {
-         let resp_html = tmpl_new_session().into_string();
-         Ok(iron::Response::with((iron::status::Ok, "text/html".parse::<Mime>().unwrap(), resp_html)))
+            let resp_html = tmpl_new_session().into_string();
+            Ok(iron::Response::with((iron::status::Ok, "text/html".parse::<Mime>().unwrap(), resp_html)))
         }
     }
 }
 
 fn set_session_cookie(resp: &mut iron::Response, session_key: &str) -> Result<(), common::Error> {
-    let session_cookie = Cookie::build("session", String::from(session_key))
-        .path("/")
-        .max_age(Duration::days(365))
-        .finish();
+    let session_cookie =
+        Cookie::build("session", String::from(session_key)).path("/").max_age(Duration::days(365)).finish();
     resp.headers.set(SetCookie(vec![session_cookie.to_string()]));
     Ok(())
 }
 
 pub fn get_request_token(r: &iron::Request) -> Option<String> {
-    r.extensions.get::<Router>().unwrap().find("token").map(|s| String::from(s))
+    r.extensions
+        .get::<Router>()
+        .unwrap()
+        .find("token")
+        .map(|s| String::from(s))
 }
 
 
@@ -112,22 +98,28 @@ pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<i
         Some(login_token) => {
             debug!("Logging in with key {}.", login_token);
             match db::get_login_token_account(&mut conn, &login_token) {
-                Err(e) => return Err(iron::IronError::new(e, (iron::status::InternalServerError, "Failed to check token"))),
-                Ok(oa) => match oa {
-                    None => Ok(iron::Response::with((iron::status::Ok, "Invalid token"))),
-                    Some(account_id) => {
-                        /// Yeah, token is ok.
-                        /// TODO: mark token as used.
-                        let session_key: String = uuid::Uuid::new_v4().to_string();
-                        itry!(db::set_session_value(
-                            &mut conn,
-                            &session_key,
-                            "account",
-                            &format!("{}", account_id)));
-                        let ct = "text/html".parse::<Mime>().unwrap();
-                        let mut resp = iron::Response::with((iron::status::Ok, ct, tmpl_new_session_result(true).into_string()));
-                        itry!(set_session_cookie(&mut resp, &session_key));
-                        Ok(resp)
+                Err(e) => {
+                    return Err(iron::IronError::new(e,
+                                                    (iron::status::InternalServerError, "Failed to check token")))
+                }
+                Ok(oa) => {
+                    match oa {
+                        None => Ok(iron::Response::with((iron::status::Ok, "Invalid token"))),
+                        Some(account_id) => {
+                            /// Yeah, token is ok.
+                            /// TODO: mark token as used.
+                            let session_key: String = uuid::Uuid::new_v4().to_string();
+                            itry!(db::set_session_value(&mut conn,
+                                                        &session_key,
+                                                        "account",
+                                                        &format!("{}", account_id)));
+                            let ct = "text/html".parse::<Mime>().unwrap();
+                            let mut resp = iron::Response::with((iron::status::Ok,
+                                                                 ct,
+                                                                 tmpl_new_session_result(true).into_string()));
+                            itry!(set_session_cookie(&mut resp, &session_key));
+                            Ok(resp)
+                        }
                     }
                 }
             }
@@ -146,6 +138,6 @@ fn handle_post_new_session_form(r: &mut iron::Request) -> Option<String> {
     let r_email = get_str(params, "email");
     match r_email {
         Ok(email) => Some(email),
-        Err(_) => None
+        Err(_) => None,
     }
 }

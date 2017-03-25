@@ -35,9 +35,10 @@ pub fn tmpl_new_session_result(success: bool) -> Markup {
     let title = "New Session";
     let text = match success {
         true => "Login successful",
-        false => "Login failed"
+        false => "Login failed",
     };
-    tmpl_base(title, html! {
+    tmpl_base(title,
+              html! {
         p (text)
     })
 }

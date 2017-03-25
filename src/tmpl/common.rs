@@ -83,6 +83,17 @@ fn tmpl_css() -> Markup {
                     font-size: 16px;
                 }
 
+                a,
+                a:hover,
+                a:active,
+                a:visited {
+                    color: #CC4237;
+                }
+
+                a.active {
+                    color: #A63817;
+                }
+
                 /* menu */
                 div.menu {
                     display: flex;
@@ -142,6 +153,11 @@ fn tmpl_css() -> Markup {
 
                 table.form > tbody > tr > td {
                     padding: 1pt 2pt 1pt 0pt;
+                }
+
+                table.form > tbody > tr > td.error {
+                    font-size: 90%;
+                    color: red;
                 }"
             ))
         }
@@ -169,10 +185,10 @@ fn tmpl_head(title: &str) -> Markup {
 fn tmpl_menu(logged_in: bool) -> Markup {
     html! {
         div.menu {
-            div.menu-item { "[ " a href="/" "Table" " ]" }
+            div.menu-item { "[ " a href="/" "Entries" " ]" }
             div.menu-item { "[ " a href="/accounts" "Accounts" " ]" }
             div.menu-item { "[ " a href="/currency" "Currency" " ]" }
-            div.menu-item { "[ " a href="/add" "Add" " ]" }
+            // div.menu-item { "[ " a href="/add" "Add Entry" " ]" }
             div.menu-item { "[ " a href="/export" "Export" " ]" }
             div.menu-spacer ""
             @if logged_in {

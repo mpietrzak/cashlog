@@ -16,11 +16,13 @@ pub fn handle_get_logout(_: &mut iron::Request) -> iron::IronResult<iron::Respon
 
 fn get_confirm(request: &mut iron::Request) -> Option<String> {
     match request.get_ref::<params::Params>() {
-        Ok(map) => match map.get("confirm") {
-            Some(&params::Value::String(ref s)) => Some(s.clone()),
-            _ => None
-        },
-        _ => None
+        Ok(map) => {
+            match map.get("confirm") {
+                Some(&params::Value::String(ref s)) => Some(s.clone()),
+                _ => None,
+            }
+        }
+        _ => None,
     }
 }
 
@@ -32,7 +34,7 @@ pub fn handle_post_logout(request: &mut iron::Request) -> iron::IronResult<iron:
                 let mut conn = itry!(common::get_pooled_db_connection(request));
                 itry!(db::delete_session(&mut conn, &session_id));
             }
-            _ => ()
+            _ => (),
         }
     }
     Ok(itry!(common::redirect(request, "/")))

@@ -21,14 +21,12 @@ pub const COOKIE_KEY: &'static [u8] = b"2ac7b2d5-b4c0-4e0a-a945-b9b8dbf4fbcb";
 
 #[derive(Debug)]
 pub struct Error {
-    desc: String
+    desc: String,
 }
 
 impl Error {
     pub fn new(desc: &str) -> Error {
-        Error {
-            desc: String::from(desc)
-        }
+        Error { desc: String::from(desc) }
     }
 }
 
@@ -76,7 +74,7 @@ impl iron::typemap::Key for DatabasePool {
 }
 
 pub struct DatabasePoolMiddleware {
-    pub pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager>
+    pub pool: r2d2::Pool<r2d2_postgres::PostgresConnectionManager>,
 }
 
 impl iron::BeforeMiddleware for DatabasePoolMiddleware {
@@ -90,16 +88,19 @@ impl iron::BeforeMiddleware for DatabasePoolMiddleware {
 /// Create database pool, die if can't create.
 pub fn create_database_pool() -> r2d2::Pool<r2d2_postgres::PostgresConnectionManager> {
     let config = r2d2::Config::default();
-    let manager = r2d2_postgres::PostgresConnectionManager::new(
-        "postgres://cashlog@localhost",
-        r2d2_postgres::TlsMode::None).unwrap();
+    let manager = r2d2_postgres::PostgresConnectionManager::new("postgres://cashlog@localhost/cashlog2",
+                                                                r2d2_postgres::TlsMode::None)
+            .unwrap();
     let pool = r2d2::Pool::new(config, manager).unwrap();
     pool
 }
 
 pub fn get_pooled_db_connection(request: &mut iron::Request)
-        -> Result<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, Error> {
-    let pool = request.extensions.get::<DatabasePool>().unwrap().clone();
+                                -> Result<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, Error> {
+    let pool = request.extensions
+        .get::<DatabasePool>()
+        .unwrap()
+        .clone();
     Ok(pool.get()?)
 }
 
@@ -122,45 +123,39 @@ pub fn get_session_id(request: &mut iron::Request) -> Result<Option<String>, Err
             let jar = to_cookie_jar(cookie)?;
             match jar.find("session") {
                 Some(c) => Ok(Some(String::from(c.value()))),
-                None => Ok(None)
+                None => Ok(None),
             }
         }
-        None => {
-            Ok(None)
-        }
+        None => Ok(None),
     }
 }
 
-pub fn get_session_account_id(
-        conn: &mut postgres::Connection,
-        request: &mut iron::Request) -> Option<i64> {
+pub fn get_session_account_id(conn: &mut postgres::Connection, request: &mut iron::Request) -> Option<i64> {
     match get_session_id(request) {
-        Ok(ms) => match ms {
-            Some(s) => {
-                let o_account_str = db::get_session_value(conn, &s, "account");
-                match o_account_str {
-                    Some(account_str) => {
-                        match account_str.parse() {
-                            Ok(account_id) => {
-                                Some(account_id)
-                            }
-                            Err(e) => {
-                                // This is a signed cookie, so it's
-                                // a little bit strange if we can't parse.
-                                warn!("Failed to parse string account id (\"{}\") into integer: {}",
-                                    account_str,
-                                    e);
-                                None
+        Ok(ms) => {
+            match ms {
+                Some(s) => {
+                    let o_account_str = db::get_session_value(conn, &s, "account");
+                    match o_account_str {
+                        Some(account_str) => {
+                            match account_str.parse() {
+                                Ok(account_id) => Some(account_id),
+                                Err(e) => {
+                                    // This is a signed cookie, so it's
+                                    // a little bit strange if we can't parse.
+                                    warn!("Failed to parse string account id (\"{}\") into integer: {}",
+                                          account_str,
+                                          e);
+                                    None
+                                }
                             }
                         }
-                    }
-                    None => {
-                        None
+                        None => None,
                     }
                 }
+                None => None,
             }
-            None => None
-        },
+        }
         Err(e) => {
             warn!("Error while trying to get session id: {}", e);
             None
@@ -192,11 +187,7 @@ pub fn redirect(request: &iron::Request, path: &str) -> Result<iron::Response, E
 }
 
 /// Send the login email.
-pub fn send_email_login_email(
-        base_url: &str,
-        email: &str,
-        key: &str,
-        use_email: bool) -> Result<(), Error> {
+pub fn send_email_login_email(base_url: &str, email: &str, key: &str, use_email: bool) -> Result<(), Error> {
     let url = format!("{}/new-session/{}", base_url, key);
     let body = format!("Click this link to login to CashLog: {}", url);
     if use_email {

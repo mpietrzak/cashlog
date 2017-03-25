@@ -1,6 +1,8 @@
 
 mod common;
+
 pub mod add;
+pub mod add_bank_account;
 pub mod bank_accounts;
 pub mod currency;
 pub mod logout;

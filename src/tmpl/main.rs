@@ -1,14 +1,17 @@
 
-use model::Entry;
 use maud;
 
+use model::EntryInfo;
 use tmpl::common::tmpl_base;
 use util::format_ts;
 
-pub fn tmpl_main(title: &str, entries: &Vec<Entry>) -> maud::Markup {
+pub fn tmpl_main(title: &str, entries: &Vec<EntryInfo>) -> maud::Markup {
     // let entries_html = tmpl_entries(entries);
     // tmpl_base(title, &entries_html)
     let content = html! {
+        p style="font-size: small" {
+            "[ " a href="add" "Add" " ]"
+        }
         table class="data" {
             thead {
                 tr {
