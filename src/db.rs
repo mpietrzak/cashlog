@@ -349,9 +349,12 @@ pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<V
 }
 
 /// Delete entry.
+/// The account_id is redundant, but we use it for security.
 pub fn delete_entry(conn: &mut postgres::Connection, account_id: i64, entry_id: i64) -> Result<(), DBError> {
-    conn.execute("update entry set deleted = true, modified = current_timestamp
-        where account = $1 and id = $2",
+    conn.execute("update entry
+                 set deleted = true, modified = current_timestamp
+                 where id = $2
+                 and bank_account in (select id from bank_account where account = $1)",
                  &[&account_id, &entry_id])?;
     Ok(())
 }
