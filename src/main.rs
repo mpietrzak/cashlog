@@ -93,12 +93,20 @@ impl iron::BeforeMiddleware for ConfExtensionMiddleware {
     }
 }
 
+pub fn favicon(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
+    let content_type = "image/png".parse::<mime::Mime>().unwrap();
+    let response_body = include_bytes!("../bank.png");
+    let resp = iron::Response::with((iron::status::Ok, content_type, &response_body[..]));
+    Ok(resp)
+}
+
 fn main() {
     env_logger::init().unwrap();
     let conf = load_config_or_exit();
     let port = conf.port;
     debug!("Config loaded:\n{:?}", conf);
     let mut router = router::Router::new();
+    router.get("/favicon.ico", favicon, "favicon");
     router.get("/", page::main::handle_main, "main");
     router.get("/accounts",
                page::bank_accounts::handle_bank_accounts,
