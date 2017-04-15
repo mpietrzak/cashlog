@@ -188,9 +188,9 @@ fn tmpl_menu(logged_in: bool) -> Markup {
             div.menu-item { "[ " a href="/" "Entries" " ]" }
             div.menu-item { "[ " a href="/accounts" "Accounts" " ]" }
             div.menu-item { "[ " a href="/currency" "Currency" " ]" }
-            // div.menu-item { "[ " a href="/add" "Add Entry" " ]" }
             div.menu-item { "[ " a href="/export" "Export" " ]" }
             div.menu-spacer ""
+            duv.menu-item { "[ " a href="/about" "About" " ]" }
             @if logged_in {
                 div.menu-item { "[ " a href="/profile" "Profile" " ]"}
                 div.menu-item { "[ " a href="/logout" "Logout" " ]"}

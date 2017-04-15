@@ -1,4 +1,5 @@
 
+pub mod about;
 pub mod add;
 pub mod bank_accounts;
 pub mod currency;

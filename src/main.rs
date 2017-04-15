@@ -108,6 +108,7 @@ fn main() {
     let mut router = router::Router::new();
     router.get("/favicon.ico", favicon, "favicon");
     router.get("/", page::main::handle_main, "main");
+    router.get("/about", page::about::handle_about, "about");
     router.get("/accounts",
                page::bank_accounts::handle_bank_accounts,
                "bank-accounts");
