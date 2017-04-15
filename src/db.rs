@@ -334,17 +334,56 @@ pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<V
         Ok(rows) => {
             Ok(rows.iter()
                    .map(|row| {
+                        EntryInfo {
+                            id: row.get(0),
+                            bank_account: row.get(1),
+                            amount: row.get(2),
+                            currency: row.get(3),
+                            ts: row.get(4),
+                        }
+                    })
+                   .collect())
+        }
+        Err(e) => Err(DBError::new(&e.to_string())),
+    }
+}
+
+pub fn get_entries_by_bank_account(
+        conn: &mut postgres::Connection,
+        account_id: i64,
+        bank_account_name: &str
+    ) -> Result<Vec<EntryInfo>, DBError> {
+    let sql = "
+        select
+            entry.id,
+            bank_account.name,
+            entry.amount::text,
+            bank_account.currency,
+            entry.ts
+        from
+            entry
+            join bank_account on (bank_account.id = entry.bank_account)
+        where
+            bank_account.account = $1
+            and bank_account.name = $2
+            and entry.deleted = false
+            and bank_account.deleted = false
+        order by entry.ts
+        limit 4096";
+    match conn.query(sql, &[&account_id, &bank_account_name]) {
+        Ok(rows) => Ok(rows.iter()
+            .map(|row| {
                 EntryInfo {
                     id: row.get(0),
                     bank_account: row.get(1),
                     amount: row.get(2),
                     currency: row.get(3),
                     ts: row.get(4),
+
                 }
             })
-                   .collect())
-        }
-        Err(e) => Err(DBError::new(&e.to_string())),
+            .collect()),
+        Err(err) => Err(DBError::new(&err.to_string()))
     }
 }
 

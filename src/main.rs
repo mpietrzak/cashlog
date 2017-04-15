@@ -8,6 +8,8 @@ extern crate iron;
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 // extern crate mount;
 // extern crate staticfile;
 extern crate cookie;
@@ -122,6 +124,7 @@ fn main() {
     router.get("/export/:filename",
                page::export::handle_export_file,
                "export-file");
+    router.get("/graph", page::graph::handle_graph, "graph");
     router.get("/logout", page::logout::handle_get_logout, "logout");
     router.get("/new-session",
                page::new_session::handle_new_session,
