@@ -195,7 +195,7 @@ pub fn send_email_login_email(base_url: &str, email: &str, key: &str, use_email:
             .to(email)
             .from("cashlog@hell.cx")
             .subject("CashLog Email Login Link")
-            .text(&body)
+            .text(body.as_ref())
             .build()
             .unwrap();
         let mut mailer = SmtpTransportBuilder::localhost().unwrap().build();
