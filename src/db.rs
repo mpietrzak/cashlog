@@ -310,6 +310,74 @@ pub fn insert_entry(conn: &mut postgres::Connection,
     }
 }
 
+pub fn get_entry(
+        conn: &mut postgres::Connection,
+        account_id: i64,
+        entry_id: i64) -> Result<Option<EntryInfo>, DBError> {
+    let sql = "
+        select
+            entry.id,
+            entry.amount::text,
+            entry.ts,
+            bank_account.name,
+            bank_account.currency
+        from
+            entry
+            join bank_account on (bank_account.id = entry.bank_account)
+        where
+            bank_account.account = $1
+            and entry.id = $2
+            and entry.deleted = false
+            and bank_account.deleted = false
+    ";
+    let rows = conn.query(sql, &[&account_id, &entry_id])?;
+    match rows.iter().next() {
+        Some(row) => {
+            let id = row.get(0);
+            let amount = row.get(1);
+            let ts = row.get(2);
+            let bank_account_name = row.get(3);
+            let bank_account_currency = row.get(4);
+            Ok(Some(EntryInfo {
+                amount: amount,
+                bank_account: bank_account_name,
+                currency: bank_account_currency,
+                id: id,
+                ts: ts
+            }))
+        }
+        None => Ok(None)
+    }
+}
+
+pub fn update_entry_amount(
+        conn: &mut postgres::Connection,
+        account_id: i64,
+        entry_id: i64,
+        amount: String) -> Result<(), DBError> {
+    let sql = "
+        update entry
+        set
+            amount = $1::text::numeric,
+            modified = current_timestamp
+        where
+            id = (
+                select
+                    entry.id
+                from
+                    entry
+                    join bank_account on (bank_account.id = entry.bank_account)
+                where
+                    entry.id = $2
+                    and bank_account.account = $3
+                    and entry.deleted = false
+                    and bank_account.deleted = false
+            )
+    ";
+    conn.execute(sql, &[&amount, &entry_id, &account_id])?;
+    Ok(())
+}
+
 /// Get CashLog entries for given account id.
 /// Currently amount is String on Rust side - probably should be pair
 /// of ints or something.

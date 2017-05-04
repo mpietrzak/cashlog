@@ -120,6 +120,7 @@ fn main() {
                "add-bank-account");
     router.get("/currency", page::currency::handle_currency, "currency");
     router.get("/delete", page::delete::handle_delete, "delete");
+    router.get("/edit", page::edit::handle_edit, "edit");
     router.get("/export", page::export::handle_export, "export");
     router.get("/export/:filename",
                page::export::handle_export_file,
@@ -137,6 +138,7 @@ fn main() {
     router.post("/add-bank-account",
                page::add_bank_account::handle_post_add_bank_account,
                "add-bank-account");
+    router.post("/edit", page::edit::handle_post_edit, "edit");
     router.post("/logout", page::logout::handle_post_logout, "logout");
     router.post("/new-session",
                 page::new_session::handle_post_new_session,

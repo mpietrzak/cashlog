@@ -25,8 +25,8 @@ pub struct CurrencyInfo {
 }
 
 pub struct EntryInfo {
-    pub bank_account: String,
     pub amount: String,
+    pub bank_account: String,
     pub currency: String,
     pub id: i64,
     pub ts: Timespec,
