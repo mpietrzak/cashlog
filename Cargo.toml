@@ -10,7 +10,7 @@ cookie = "^0.6"
 env_logger = ">=0.3"
 hyper = ">=0.9"
 iron = ">=0.3"
-lettre = ">=0.6"
+lettre = "^0.6"
 log = ">=0.3"
 maud = { version = "*", features = ["iron"] }
 maud_macros = "*"
