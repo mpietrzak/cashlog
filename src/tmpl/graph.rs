@@ -12,7 +12,7 @@ pub fn tmpl_graph(entries: &Vec<EntryInfo>) -> maud::Markup {
             (t, a)
         }).collect();
     let j = json!(d);
-    let data_js = format!("<script>var data_raw = {}</script>", j);
+    let data_js = format!("<script>var data_raw = {};</script>", j);
     let chart_js = "
         <script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>
         <script type=\"text/javascript\">
@@ -23,8 +23,13 @@ pub fn tmpl_graph(entries: &Vec<EntryInfo>) -> maud::Markup {
                 data_table.addColumn('datetime', 'TS');
                 data_table.addColumn('number', 'Amount');
                 for(var i = 0; i < data_raw.length; ++i) {
-                    var raw_row = data_raw[i];
-                    var row = [new Date(raw_row[0]), raw_row[1]];
+                    var date_str = data_raw[i][0];
+                    var amount = data_raw[i][1];
+                    var date_parts = date_str.split(/[^0-9]/);
+                    var date = new Date (
+                        date_parts[0], date_parts[1]-1, date_parts[2],
+                        date_parts[3], date_parts[4], date_parts[5]);
+                    var row = [date, amount];
                     data_table.addRow(row);
                 }
                 var options = {
