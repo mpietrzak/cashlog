@@ -27,6 +27,6 @@ serde_derive = ">=0.9, <1.1"
 serde_json = ">=0.9, <1.1"
 time = "*"
 toml = "^0.4"
-url = { git = "https://github.com/servo/rust-url" }
+url = "*"
 uuid = { version = "^0.5", features = ["v4"] }
-logger = { git = "https://github.com/iron/logger.git" }
+logger = "*"
