@@ -17,8 +17,6 @@ use url;
 use db;
 use model;
 
-pub const COOKIE_KEY: &'static [u8] = b"2ac7b2d5-b4c0-4e0a-a945-b9b8dbf4fbcb";
-
 #[derive(Debug)]
 pub struct Error {
     desc: String,
@@ -104,8 +102,8 @@ pub fn get_pooled_db_connection(request: &mut iron::Request)
     Ok(pool.get()?)
 }
 
-pub fn to_cookie_jar(cookies: &Vec<String>) -> Result<cookie::CookieJar<'static>, Error> {
-    let mut jar = cookie::CookieJar::new(COOKIE_KEY);
+pub fn to_cookie_jar(cookies: &Vec<String>) -> Result<cookie::CookieJar, Error> {
+    let mut jar = cookie::CookieJar::new();
     for cookie_str in cookies.iter() {
         let cookie = cookie::Cookie::parse(cookie_str.as_str())?.into_owned();
         jar.add_original(cookie.clone());
@@ -119,7 +117,7 @@ pub fn get_session_id(request: &mut iron::Request) -> Result<Option<String>, Err
     match cookie {
         Some(cookie) => {
             let jar = to_cookie_jar(cookie)?;
-            match jar.find("session") {
+            match jar.get("session") {
                 Some(c) => Ok(Some(String::from(c.value()))),
                 None => Ok(None),
             }

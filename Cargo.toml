@@ -6,7 +6,7 @@ authors = ["Maciej Pietrzak"]
 [dependencies]
 # mount = ">=0.2"
 # staticfile = "*"
-cookie = "^0.6"
+cookie = "^0.8"
 env_logger = ">=0.3"
 hyper = ">=0.9"
 iron = ">=0.3"
