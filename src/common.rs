@@ -107,9 +107,7 @@ pub fn get_pooled_db_connection(request: &mut iron::Request)
 pub fn to_cookie_jar(cookies: &Vec<String>) -> Result<cookie::CookieJar<'static>, Error> {
     let mut jar = cookie::CookieJar::new(COOKIE_KEY);
     for cookie_str in cookies.iter() {
-        let s = cookie_str.clone();
-        let ss = s.as_str();
-        let cookie = cookie::Cookie::parse(ss)?.into_owned();
+        let cookie = cookie::Cookie::parse(cookie_str.as_str())?.into_owned();
         jar.add_original(cookie.clone());
     }
     Ok(jar)
