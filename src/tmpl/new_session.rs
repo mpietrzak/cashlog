@@ -1,5 +1,6 @@
 
 use maud::Markup;
+use maud::html;
 
 use tmpl::common::tmpl_base;
 

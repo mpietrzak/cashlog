@@ -1,4 +1,5 @@
 
+use maud::html;
 use maud::Markup;
 
 use model::BankAccountInfo;

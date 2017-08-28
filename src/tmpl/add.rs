@@ -1,5 +1,6 @@
 
 use maud::Markup;
+use maud::html;
 use time;
 use std::fmt::Display;
 

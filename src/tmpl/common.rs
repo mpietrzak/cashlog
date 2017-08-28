@@ -1,5 +1,6 @@
 
 use maud;
+use maud::html;
 use maud::Markup;
 use maud::PreEscaped;
 use psutil;

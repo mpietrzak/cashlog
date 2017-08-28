@@ -1,5 +1,6 @@
 
 use maud;
+use maud::html;
 use time;
 
 use tmpl::common::tmpl_base;

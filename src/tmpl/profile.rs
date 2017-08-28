@@ -2,6 +2,7 @@
 //! Template for profile page.
 
 use maud;
+use maud::html;
 
 use tmpl::common::tmpl_base;
 use model;

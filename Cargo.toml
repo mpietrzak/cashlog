@@ -8,13 +8,13 @@ authors = ["Maciej Pietrzak"]
 # staticfile = "*"
 cookie = "^0.8"
 env_logger = ">=0.3"
-hyper = ">=0.9"
-iron = ">=0.3"
+hyper = "^0.10"
+iron = ">=0.5"
 lettre = "^0.6"
 log = ">=0.3"
-maud = { version = "*", features = ["iron"] }
-maud_macros = "*"
-mime = "*"
+maud = { version = "^0.17.1", features = ["iron"] }
+maud_macros = "^0.17.1"
+mime = "^0.2"
 params = "*"
 plugin = "*"
 postgres = { version = ">0.12", features = ["with-time"] }

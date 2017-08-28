@@ -1,5 +1,6 @@
 
 use maud;
+use maud::html;
 use time;
 
 use model::EntryInfo;
