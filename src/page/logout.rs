@@ -4,8 +4,8 @@ use mime::Mime;
 use params;
 use plugin::Pluggable;
 
-use db;
 use common;
+use db;
 use tmpl;
 
 pub fn handle_get_logout(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
@@ -16,12 +16,10 @@ pub fn handle_get_logout(_: &mut iron::Request) -> iron::IronResult<iron::Respon
 
 fn get_confirm(request: &mut iron::Request) -> Option<String> {
     match request.get_ref::<params::Params>() {
-        Ok(map) => {
-            match map.get("confirm") {
-                Some(&params::Value::String(ref s)) => Some(s.clone()),
-                _ => None,
-            }
-        }
+        Ok(map) => match map.get("confirm") {
+            Some(&params::Value::String(ref s)) => Some(s.clone()),
+            _ => None,
+        },
         _ => None,
     }
 }

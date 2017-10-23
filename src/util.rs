@@ -1,8 +1,8 @@
 
 use params::Map;
+use time;
 use time::Timespec;
 use time::strptime;
-use time;
 
 pub fn parse_ts(s: &str) -> Result<Timespec, String> {
     let r = strptime(s, "%Y-%m-%d %H:%M:%S");
@@ -44,12 +44,10 @@ pub fn get_double(map: &Map, key: &str) -> Result<f64, String> {
 pub fn get_i64(map: &Map, key: &str) -> Result<i64, String> {
     use params::Value;
     match map.get(key) {
-        Some(&Value::String(ref s)) => {
-            match s.parse() {
-                Ok(v) => Ok(v),
-                Err(e) => Err(e.to_string()),
-            }
-        }
+        Some(&Value::String(ref s)) => match s.parse() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.to_string()),
+        },
         _ => Err(format!("No such key: \"{}\"", key)),
     }
 }

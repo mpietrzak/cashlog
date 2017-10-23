@@ -37,6 +37,11 @@ pub struct Config {
     pub base_url: Option<String>,
     pub use_email: bool,
     pub port: Option<i32>,
+    pub db_host: String,
+    pub db_port: u16,
+    pub db_name: String,
+    pub db_username: String,
+    pub db_password: String,
 }
 
 impl Key for Config {

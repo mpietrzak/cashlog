@@ -1,8 +1,8 @@
 
 use std::collections::HashMap;
 
-use maud::html;
 use maud::Markup;
+use maud::html;
 
 use tmpl::common::tmpl_base;
 

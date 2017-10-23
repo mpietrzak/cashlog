@@ -24,7 +24,9 @@ pub struct Error {
 
 impl Error {
     pub fn new(desc: &str) -> Error {
-        Error { desc: String::from(desc) }
+        Error {
+            desc: String::from(desc),
+        }
     }
 }
 
@@ -84,21 +86,35 @@ impl iron::BeforeMiddleware for DatabasePoolMiddleware {
 }
 
 /// Create database pool, die if can't create.
-pub fn create_database_pool() -> r2d2::Pool<r2d2_postgres::PostgresConnectionManager> {
-    let config = r2d2::Config::default();
-    let manager = r2d2_postgres::PostgresConnectionManager::new("postgres://cashlog@localhost/cashlog2",
-                                                                r2d2_postgres::TlsMode::None)
-            .unwrap();
-    let pool = r2d2::Pool::new(config, manager).unwrap();
+pub fn create_database_pool(
+    host: &str,
+    port: u16,
+    database_name: &str,
+    username: &str,
+    password: &str,
+) -> r2d2::Pool<r2d2_postgres::PostgresConnectionManager> {
+    let config = r2d2::Config::builder()
+        .min_idle(Some(0))
+        .initialization_fail_fast(false)
+        .build();
+    let conn_params = {
+        use postgres_shared::params;
+        let mut b = params::Builder::new();
+        b.port(port);
+        b.database(database_name);
+        b.user(username, Some(password));
+        b.build(params::Host::Tcp(String::from(host)))
+    };
+    let manager = r2d2_postgres::PostgresConnectionManager::new(conn_params, r2d2_postgres::TlsMode::None)
+        .expect("Failed to create R2D2 PostgreSQL Connection Manager");
+    let pool = r2d2::Pool::new(config, manager).expect("Failed to create R2D2 Pool");
     pool
 }
 
-pub fn get_pooled_db_connection(request: &mut iron::Request)
-                                -> Result<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, Error> {
-    let pool = request.extensions
-        .get::<DatabasePool>()
-        .unwrap()
-        .clone();
+pub fn get_pooled_db_connection(
+    request: &mut iron::Request,
+) -> Result<r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager>, Error> {
+    let pool = request.extensions.get::<DatabasePool>().unwrap().clone();
     Ok(pool.get()?)
 }
 
@@ -139,9 +155,11 @@ pub fn get_session_account_id(conn: &mut postgres::Connection, request: &mut iro
                                 Err(e) => {
                                     // This is a signed cookie, so it's
                                     // a little bit strange if we can't parse.
-                                    warn!("Failed to parse string account id (\"{}\") into integer: {}",
-                                          account_str,
-                                          e);
+                                    warn!(
+                                        "Failed to parse string account id (\"{}\") into integer: {}",
+                                        account_str,
+                                        e
+                                    );
                                     None
                                 }
                             }
@@ -179,7 +197,10 @@ pub fn get_base_url(request: &iron::Request) -> Result<String, Error> {
 pub fn redirect(request: &iron::Request, path: &str) -> Result<iron::Response, Error> {
     let base_url = get_base_url(request)?;
     let to_iron_url = iron::Url::parse(&format!("{}/{}", base_url, path))?;
-    Ok(iron::Response::with((iron::status::Found, iron::modifiers::Redirect(to_iron_url))))
+    Ok(iron::Response::with((
+        iron::status::Found,
+        iron::modifiers::Redirect(to_iron_url),
+    )))
 }
 
 /// Send the login email.

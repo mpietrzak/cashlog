@@ -22,18 +22,16 @@ pub fn handle_edit(request: &mut Request) -> IronResult<Response> {
         let map = request.get_ref::<Params>().unwrap();
         match map.find(&["id"]) {
             Some(&Value::String(ref v)) => v.parse().unwrap(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound))
+            _ => return Ok(iron::Response::with(iron::status::NotFound)),
         }
     };
     let entry = match itry!(db::get_entry(&mut conn, account_id, entry_id)) {
         Some(entry) => entry,
-        None => {
-            return Ok(Response::with("not found"))
-        }
+        None => return Ok(Response::with("not found")),
     };
     let form_data = FormData {
         id: entry.id,
-        amount: (String::from(entry.amount), None)
+        amount: (String::from(entry.amount), None),
     };
     let resp = tmpl_edit(&form_data);
     Ok(Response::with(resp))
@@ -49,27 +47,32 @@ pub fn handle_post_edit(request: &mut Request) -> IronResult<Response> {
         let map = request.get_ref::<Params>().unwrap();
         match map.find(&["id"]) {
             Some(&Value::String(ref v)) => v.parse().unwrap(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound))
+            _ => return Ok(iron::Response::with(iron::status::NotFound)),
         }
     };
     if itry!(db::get_entry(&mut conn, account_id, entry_id)).is_none() {
-        return Ok(Response::with("not found"))
+        return Ok(Response::with("not found"));
     };
     let amount_str = {
         match request.get_ref::<Params>().unwrap().find(&["amount"]) {
             Some(&Value::String(ref v)) => v.clone(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound))
+            _ => return Ok(iron::Response::with(iron::status::NotFound)),
         }
     };
     match amount_str.parse::<f64>() {
         Ok(_) => {
-            itry!(db::update_entry_amount(&mut conn, account_id, entry_id, amount_str));
+            itry!(db::update_entry_amount(
+                &mut conn,
+                account_id,
+                entry_id,
+                amount_str
+            ));
             Ok(itry!(common::redirect(request, "")))
         }
         Err(parse_error) => {
             let form_data = FormData {
                 id: entry_id,
-                amount: (amount_str, Some(parse_error.to_string()))
+                amount: (amount_str, Some(parse_error.to_string())),
             };
             let resp = tmpl_edit(&form_data);
             Ok(Response::with(resp))

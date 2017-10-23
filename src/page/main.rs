@@ -1,8 +1,8 @@
 
 use iron;
+use iron::IronResult;
 use iron::Request;
 use iron::Response;
-use iron::IronResult;
 use mime::Mime;
 
 use common;

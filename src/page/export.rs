@@ -4,22 +4,24 @@ use mime::Mime;
 
 use common;
 use db;
+use mime;
 use model;
 use router;
 use time;
 use tmpl;
-use mime;
 
 fn entries_to_csv(entries: Vec<model::EntryInfo>) -> String {
     let mut csv: String = String::new();
     csv.push_str("ts,account,amount,currency\n");
     for e in entries {
         let ts_str = time::strftime("%Y-%m-%d %H:%M:%S", &time::at_utc(e.ts)).unwrap();
-        csv.push_str(&format!("{},{},{},{}\n",
-                              ts_str,
-                              e.bank_account,
-                              e.amount,
-                              e.currency));
+        csv.push_str(&format!(
+            "{},{},{},{}\n",
+            ts_str,
+            e.bank_account,
+            e.amount,
+            e.currency
+        ));
     }
     csv
 }
@@ -28,7 +30,8 @@ fn entries_to_csv(entries: Vec<model::EntryInfo>) -> String {
 /// TODO: make sure filename contains only allowed chars, otherwise we risk
 /// XSS vuln.
 fn get_export_filename_request_param(request: &iron::Request) -> Option<String> {
-    request.extensions
+    request
+        .extensions
         .get::<router::Router>()
         .unwrap()
         .find("filename")
@@ -37,7 +40,8 @@ fn get_export_filename_request_param(request: &iron::Request) -> Option<String> 
 
 /// Show export page.
 pub fn handle_export(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let pool = request.extensions
+    let pool = request
+        .extensions
         .get::<common::DatabasePool>()
         .unwrap()
         .clone();
@@ -54,7 +58,8 @@ pub fn handle_export(request: &mut iron::Request) -> iron::IronResult<iron::Resp
 /// Generate export file.
 pub fn handle_export_file(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
     let filename = get_export_filename_request_param(request).unwrap_or(String::from("export.csv"));
-    let pool = request.extensions
+    let pool = request
+        .extensions
         .get::<common::DatabasePool>()
         .unwrap()
         .clone();
@@ -68,14 +73,18 @@ pub fn handle_export_file(request: &mut iron::Request) -> iron::IronResult<iron:
     let csv_content_type: mime::Mime = "text/csv".parse().unwrap();
     let csv_content_disposition_header = iron::headers::ContentDisposition {
         disposition: iron::headers::DispositionType::Attachment,
-        parameters: vec![iron::headers::DispositionParam::Filename(
-            iron::headers::Charset::Ext(String::from("UTF-8")),
-            None,
-            filename.as_bytes().into() // the actual bytes of the filename
-        )],
+        parameters: vec![
+            iron::headers::DispositionParam::Filename(
+                iron::headers::Charset::Ext(String::from("UTF-8")),
+                None,
+                filename.as_bytes().into(), // the actual bytes of the filename
+            ),
+        ],
     };
-    Ok(iron::Response::with((iron::status::Ok,
-                             csv_content_type,
-                             iron::modifiers::Header(csv_content_disposition_header),
-                             csv)))
+    Ok(iron::Response::with((
+        iron::status::Ok,
+        csv_content_type,
+        iron::modifiers::Header(csv_content_disposition_header),
+        csv,
+    )))
 }

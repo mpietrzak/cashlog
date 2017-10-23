@@ -2,9 +2,9 @@
 //! Handle login.
 
 use cookie::Cookie;
+use iron;
 use iron::headers::SetCookie;
 use iron::mime::Mime;
-use iron;
 use params::Params;
 use plugin::Pluggable;
 use router::Router;
@@ -22,7 +22,9 @@ use util::get_str;
 pub fn handle_new_session(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
     let resp_html = tmpl_new_session().into_string();
     let ct = "text/html".parse::<Mime>().unwrap();
-    Ok(iron::response::Response::with((iron::status::Ok, ct, resp_html)))
+    Ok(iron::response::Response::with(
+        (iron::status::Ok, ct, resp_html),
+    ))
 }
 
 /// Use clicked "yes" on login via email form.
@@ -42,39 +44,55 @@ pub fn handle_post_new_session(r: &mut iron::Request) -> iron::IronResult<iron::
     match o_email {
         Some(email) => {
             let account_id: i64 = match db::get_account_id_by_email(&mut conn, &email) {
-                Ok(oa) => {
-                    match oa {
-                        Some(a) => a,
-                        None => itry!(db::create_account_with_email(&mut conn, &email)),
-                    }
-                }
+                Ok(oa) => match oa {
+                    Some(a) => a,
+                    None => itry!(db::create_account_with_email(&mut conn, &email)),
+                },
                 Err(e) => {
-                    return Err(iron::IronError::new(e,
-                                                    (iron::status::InternalServerError, "Failed to query account")))
+                    return Err(iron::IronError::new(
+                        e,
+                        (iron::status::InternalServerError, "Failed to query account"),
+                    ))
                 }
             };
             let token: String = uuid::Uuid::new_v4().to_string();
             let use_email: bool = {
-                r.extensions.get::<model::Config>().map_or(false, |c| c.use_email)
+                r.extensions
+                    .get::<model::Config>()
+                    .map_or(false, |c| c.use_email)
             };
             let base_url = itry!(common::get_base_url(r));
             itry!(db::insert_login_token(&mut conn, &account_id, &token));
-            itry!(common::send_email_login_email(&base_url, &email, &token, use_email));
+            itry!(common::send_email_login_email(
+                &base_url,
+                &email,
+                &token,
+                use_email
+            ));
             let resp_content_type = "text/html".parse::<Mime>().unwrap();
             let resp_html = tmpl_new_session_email_sent().into_string();
-            Ok(iron::response::Response::with((iron::status::Ok, resp_content_type, resp_html)))
+            Ok(iron::response::Response::with(
+                (iron::status::Ok, resp_content_type, resp_html),
+            ))
         }
         None => {
             let resp_html = tmpl_new_session().into_string();
-            Ok(iron::Response::with((iron::status::Ok, "text/html".parse::<Mime>().unwrap(), resp_html)))
+            Ok(iron::Response::with((
+                iron::status::Ok,
+                "text/html".parse::<Mime>().unwrap(),
+                resp_html,
+            )))
         }
     }
 }
 
 fn set_session_cookie(resp: &mut iron::Response, session_key: &str) -> Result<(), common::Error> {
-    let session_cookie =
-        Cookie::build("session", String::from(session_key)).path("/").max_age(Duration::days(365)).finish();
-    resp.headers.set(SetCookie(vec![session_cookie.to_string()]));
+    let session_cookie = Cookie::build("session", String::from(session_key))
+        .path("/")
+        .max_age(Duration::days(365))
+        .finish();
+    resp.headers
+        .set(SetCookie(vec![session_cookie.to_string()]));
     Ok(())
 }
 
@@ -99,8 +117,10 @@ pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<i
             debug!("Logging in with key {}.", login_token);
             match db::get_login_token_account(&mut conn, &login_token) {
                 Err(e) => {
-                    return Err(iron::IronError::new(e,
-                                                    (iron::status::InternalServerError, "Failed to check token")))
+                    return Err(iron::IronError::new(
+                        e,
+                        (iron::status::InternalServerError, "Failed to check token"),
+                    ))
                 }
                 Ok(oa) => {
                     match oa {
@@ -109,14 +129,18 @@ pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<i
                             /// Yeah, token is ok.
                             /// TODO: mark token as used.
                             let session_key: String = uuid::Uuid::new_v4().to_string();
-                            itry!(db::set_session_value(&mut conn,
-                                                        &session_key,
-                                                        "account",
-                                                        &format!("{}", account_id)));
+                            itry!(db::set_session_value(
+                                &mut conn,
+                                &session_key,
+                                "account",
+                                &format!("{}", account_id)
+                            ));
                             let ct = "text/html".parse::<Mime>().unwrap();
-                            let mut resp = iron::Response::with((iron::status::Ok,
-                                                                 ct,
-                                                                 tmpl_new_session_result(true).into_string()));
+                            let mut resp = iron::Response::with((
+                                iron::status::Ok,
+                                ct,
+                                tmpl_new_session_result(true).into_string(),
+                            ));
                             itry!(set_session_cookie(&mut resp, &session_key));
                             Ok(resp)
                         }
@@ -127,7 +151,11 @@ pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<i
         None => {
             debug!("No token param found in URL.");
             let ct = "text/html".parse::<Mime>().unwrap();
-            Ok(iron::Response::with((iron::status::Ok, ct, tmpl_new_session_result(false).into_string())))
+            Ok(iron::Response::with((
+                iron::status::Ok,
+                ct,
+                tmpl_new_session_result(false).into_string(),
+            )))
         }
     }
 }

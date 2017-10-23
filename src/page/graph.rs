@@ -5,7 +5,8 @@ use common;
 use db;
 use model::EntryInfo;
 use params::{Params, Value};
-use plugin::Pluggable; // get_ref
+use plugin::Pluggable;
+// get_ref
 use tmpl;
 
 
@@ -14,7 +15,7 @@ pub fn handle_graph(request: &mut iron::Request) -> iron::IronResult<iron::Respo
         let map = request.get_ref::<Params>().unwrap();
         match map.find(&["account"]) {
             Some(&Value::String(ref bank_account)) => bank_account.clone(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound))
+            _ => return Ok(iron::Response::with(iron::status::NotFound)),
         }
     };
     let mut conn = itry!(common::get_pooled_db_connection(request));
@@ -23,7 +24,8 @@ pub fn handle_graph(request: &mut iron::Request) -> iron::IronResult<iron::Respo
         let entries: Vec<EntryInfo> = itry!(db::get_entries_by_bank_account(
             &mut conn,
             account_id,
-            &bank_account));
+            &bank_account
+        ));
         let resp_html = tmpl::graph::tmpl_graph(&entries);
         Ok(iron::Response::with((iron::status::Ok, resp_html)))
     } else {

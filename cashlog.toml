@@ -2,3 +2,8 @@
 use_email = false
 # base_href = "https://cashlog.hell.cx"
 port = 14080
+db_host = "localhost"
+db_port = 5432
+db_name = "cashlog"
+db_username = "cashlog_app"
+db_password = "cashlog_password_changeme"

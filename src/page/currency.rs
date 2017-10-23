@@ -1,9 +1,9 @@
 
 //! Currency view.
 
+use iron;
 use iron::IronResult;
 use iron::Response;
-use iron;
 use mime::Mime;
 
 use common;
@@ -11,7 +11,8 @@ use db;
 use tmpl::currency::tmpl_currency;
 
 pub fn handle_currency(request: &mut iron::Request) -> IronResult<Response> {
-    let pool = request.extensions
+    let pool = request
+        .extensions
         .get::<common::DatabasePool>()
         .unwrap()
         .clone();

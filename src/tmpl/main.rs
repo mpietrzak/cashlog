@@ -33,7 +33,7 @@ pub fn tmpl_main(title: &str, entries: &Vec<EntryInfo>) -> maud::Markup {
                             a href=(format!("edit?id={}", entry.id)) "edit"
                             ", "
                             a href=(format!("delete?id={}", entry.id)) "delete"
-                            
+
                         }
                     }
                 }

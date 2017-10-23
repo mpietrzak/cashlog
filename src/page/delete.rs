@@ -1,7 +1,7 @@
 
 use iron;
-use plugin::Pluggable;
 use params;
+use plugin::Pluggable;
 
 use common;
 use db;

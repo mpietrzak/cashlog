@@ -1,13 +1,13 @@
 
 use maud::Markup;
 use maud::html;
-use time;
 use std::fmt::Display;
+use time;
 
 use model::BankAccount;
-use tmpl::common;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use tmpl::common;
 
 fn geth(oh: &HashMap<&str, String>, key: &str) -> String {
     let ov = oh.get(key);
@@ -25,12 +25,13 @@ fn getb(ob: &BTreeMap<String, String>, key: &str, default: &str) -> String {
     }
 }
 
-fn select_field<N: Display>(values: &BTreeMap<String, String>,
-                            errors: &HashMap<&str, String>,
-                            label: &str,
-                            key: &str,
-                            options: &[(N, &String)])
-                            -> Markup {
+fn select_field<N: Display>(
+    values: &BTreeMap<String, String>,
+    errors: &HashMap<&str, String>,
+    label: &str,
+    key: &str,
+    options: &[(N, &String)],
+) -> Markup {
     html! {
         tr {
             td (label)
@@ -46,12 +47,13 @@ fn select_field<N: Display>(values: &BTreeMap<String, String>,
     }
 }
 
-fn simple_field(values: &BTreeMap<String, String>,
-                errors: &HashMap<&str, String>,
-                title: &str,
-                key: &str,
-                default: &str)
-                -> Markup {
+fn simple_field(
+    values: &BTreeMap<String, String>,
+    errors: &HashMap<&str, String>,
+    title: &str,
+    key: &str,
+    default: &str,
+) -> Markup {
     html! {
         tr {
             td (title)
@@ -61,11 +63,12 @@ fn simple_field(values: &BTreeMap<String, String>,
     }
 }
 
-pub fn tmpl_add(title: &str,
-                bank_accounts: &Vec<BankAccount>,
-                values: &BTreeMap<String, String>,
-                errors: &HashMap<&str, String>)
-                -> Markup {
+pub fn tmpl_add(
+    title: &str,
+    bank_accounts: &Vec<BankAccount>,
+    values: &BTreeMap<String, String>,
+    errors: &HashMap<&str, String>,
+) -> Markup {
     let now = time::strftime("%Y-%m-%d %H:%M:%S", &time::now_utc()).unwrap();
     let bank_account_select_options: Vec<(i64, &String)> = bank_accounts.iter().map(|ba| (ba.id, &ba.name)).collect();
     let form = html! {

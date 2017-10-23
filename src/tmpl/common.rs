@@ -1,8 +1,8 @@
 
 use maud;
-use maud::html;
 use maud::Markup;
 use maud::PreEscaped;
+use maud::html;
 use psutil;
 
 use util::human_bytes;

@@ -4,8 +4,8 @@
 use maud;
 use maud::html;
 
-use tmpl::common::tmpl_base;
 use model;
+use tmpl::common::tmpl_base;
 use util::format_ts;
 
 pub fn tmpl_profile(acc: &model::AccountInfo) -> maud::Markup {

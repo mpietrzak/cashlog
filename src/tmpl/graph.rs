@@ -7,11 +7,14 @@ use model::EntryInfo;
 use tmpl::common::tmpl_base;
 
 pub fn tmpl_graph(entries: &Vec<EntryInfo>) -> maud::Markup {
-    let d: Vec<(String, f64)> = entries.iter().map(|e| {
+    let d: Vec<(String, f64)> = entries
+        .iter()
+        .map(|e| {
             let t = time::strftime("%Y-%m-%d %H:%M:%S", &time::at_utc(e.ts)).unwrap();
             let a = e.amount.parse().unwrap();
             (t, a)
-        }).collect();
+        })
+        .collect();
     let j = json!(d);
     let data_js = format!("<script>var data_raw = {};</script>", j);
     let chart_js = "

@@ -9,24 +9,25 @@ authors = ["Maciej Pietrzak"]
 cookie = "^0.8"
 env_logger = ">=0.3"
 hyper = "^0.10"
-iron = ">=0.5"
+iron = "^0.5"
 lettre = "^0.6"
 log = ">=0.3"
+logger = "^0.3.0"
 maud = { version = "^0.17.1", features = ["iron"] }
 maud_macros = "^0.17.1"
 mime = "^0.2"
 params = "*"
 plugin = "*"
-postgres = { version = ">0.12", features = ["with-time"] }
-psutil = { version = ">=1" }
-r2d2 = ">=0.7.1"
-r2d2_postgres = ">=0.11.1"
-router = ">=0.1.1"
-serde = ">=0.9, <1.1"
-serde_derive = ">=0.9, <1.1"
-serde_json = ">=0.9, <1.1"
+postgres = { version = "^0.15", features = ["with-time"] }
+postgres-shared = "^0.4.0"
+psutil = { version = "^1.1.0" }
+r2d2 = "^0.7.4"
+r2d2_postgres = "^0.13"
+router = "^0.5.1"
+serde = "^1.0"
+serde_derive = "^1.0"
+serde_json = "^1.0"
 time = "*"
 toml = "^0.4"
 url = "*"
 uuid = { version = "^0.5", features = ["v4"] }
-logger = "*"

@@ -6,7 +6,7 @@ use tmpl::common::tmpl_base;
 
 pub struct FormData {
     pub id: i64,
-    pub amount: (String, Option<String>)
+    pub amount: (String, Option<String>),
 }
 
 pub fn tmpl_edit(form_data: &FormData) -> maud::Markup {

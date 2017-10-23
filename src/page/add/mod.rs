@@ -2,11 +2,11 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
-use iron::mime::Mime;
 use iron;
-use iron::Request;
 use iron::IronResult;
+use iron::Request;
 use iron::Response;
+use iron::mime::Mime;
 use params::Params;
 use plugin::Pluggable; // get_ref
 
@@ -28,7 +28,9 @@ pub fn handle_add(request: &mut Request) -> IronResult<Response> {
     let empty_hash_map = HashMap::new();
     let bank_accounts = itry!(db::get_bank_accounts(&mut conn, account_id));
     let resp_html = tmpl_add("Add", &bank_accounts, &empty_btree_map, &empty_hash_map).into_string();
-    Ok(iron::response::Response::with((resp_content_type, iron::status::Ok, resp_html)))
+    Ok(iron::response::Response::with(
+        (resp_content_type, iron::status::Ok, resp_html),
+    ))
 }
 
 pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
@@ -39,19 +41,29 @@ pub fn handle_post_add(request: &mut Request) -> IronResult<Response> {
     };
     let (values, r_bank_account, r_ts, r_amount) = {
         let params = request.get_ref::<Params>().unwrap();
-        (params.to_strict_map::<String>().unwrap(),
-         get_i64(params, "bank_account"),
-         get_ts(params, "ts"),
-         get_double(params, "amount"))
+        (
+            params.to_strict_map::<String>().unwrap(),
+            get_i64(params, "bank_account"),
+            get_ts(params, "ts"),
+            get_double(params, "amount"),
+        )
     };
     match (r_bank_account, r_amount, r_ts) {
         (Ok(ref bank_account), Ok(ref amount), Ok(ref ts)) => {
-            debug!("Inserting: account: {:?}, amount: {:?}, ts: {:?}",
-                   bank_account,
-                   amount,
-                   ts);
+            debug!(
+                "Inserting: account: {:?}, amount: {:?}, ts: {:?}",
+                bank_account,
+                amount,
+                ts
+            );
             let amount_str = format!("{}", amount);
-            itry!(db::insert_entry(&mut conn, &account_id, bank_account, ts, &amount_str));
+            itry!(db::insert_entry(
+                &mut conn,
+                &account_id,
+                bank_account,
+                ts,
+                &amount_str
+            ));
             // let this_url = request.url.clone().into_generic_url();
             // let to_url = this_url.join("..").unwrap();
             // let to_iron_url = Url::from_generic_url(to_url).unwrap();

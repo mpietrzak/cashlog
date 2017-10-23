@@ -42,7 +42,10 @@ fn validate(values: &HashMap<String, String>) -> HashMap<String, String> {
         errors.insert(String::from("name"), String::from("Name is required"));
     }
     if values.get("currency").unwrap_or(&String::from("")) == "" {
-        errors.insert(String::from("currency"), String::from("Currency is required"));
+        errors.insert(
+            String::from("currency"),
+            String::from("Currency is required"),
+        );
     }
     errors
 }
@@ -58,7 +61,12 @@ pub fn handle_post_add_bank_account(request: &mut Request) -> IronResult<Respons
     if errors.is_empty() {
         let ref name = values["name"];
         let ref currency = values["currency"];
-        itry!(db::insert_bank_account(&mut conn, account_id, &name, &currency));
+        itry!(db::insert_bank_account(
+            &mut conn,
+            account_id,
+            &name,
+            &currency
+        ));
         Ok(itry!(common::redirect(request, "add")))
     } else {
         // show form

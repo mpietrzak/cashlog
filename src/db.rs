@@ -1,7 +1,7 @@
 
 use std;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 use postgres;
 use time::Timespec;
@@ -19,9 +19,12 @@ pub struct DBError {
 
 impl DBError {
     fn new<X>(desc: X) -> DBError
-        where X: ToString
+    where
+        X: ToString,
     {
-        DBError { desc: desc.to_string() }
+        DBError {
+            desc: desc.to_string(),
+        }
     }
 }
 
@@ -56,7 +59,6 @@ pub fn get_session_value(conn: &mut postgres::Connection, session_key: &str, nam
                 // That's ok, it just does not exist.
                 None
             }
-
         }
         Err(e) => {
             warn!("Failed to get session value: {}", e);
@@ -65,11 +67,12 @@ pub fn get_session_value(conn: &mut postgres::Connection, session_key: &str, nam
     }
 }
 
-pub fn set_session_value(conn: &mut postgres::Connection,
-                         session_key: &str,
-                         name: &str,
-                         value: &str)
-                         -> Result<(), DBError> {
+pub fn set_session_value(
+    conn: &mut postgres::Connection,
+    session_key: &str,
+    name: &str,
+    value: &str,
+) -> Result<(), DBError> {
     let sql = "insert into session (
             id,
             key,
@@ -105,22 +108,16 @@ pub fn delete_session(conn: &mut postgres::Connection, session_key: &str) -> Res
 pub fn get_account_id_by_email(conn: &mut postgres::Connection, email: &str) -> Result<Option<i64>, DBError> {
     let sql = "select account from account_email where email = $1";
     match conn.query(sql, &[&email]) {
-        Ok(rows) => {
-            match rows.iter().next() {
-                Some(row) => {
-                    match row.get_opt(0) {
-                        None => Err(DBError::new("Invalid column")),
-                        Some(res) => {
-                            match res {
-                                Err(e) => Err(DBError::new(&e.to_string())),
-                                Ok(id) => Ok(Some(id)),
-                            }
-                        }
-                    }
-                }
-                None => Ok(None),
-            }
-        }
+        Ok(rows) => match rows.iter().next() {
+            Some(row) => match row.get_opt(0) {
+                None => Err(DBError::new("Invalid column")),
+                Some(res) => match res {
+                    Err(e) => Err(DBError::new(&e.to_string())),
+                    Ok(id) => Ok(Some(id)),
+                },
+            },
+            None => Ok(None),
+        },
         Err(e) => Err(DBError::new(&e.to_string())),
     }
 }
@@ -130,7 +127,8 @@ pub fn create_account_with_email(conn: &mut postgres::Connection, email: &str) -
         Ok(t) => t,
         Err(e) => return Err(DBError::new(&e.to_string())),
     };
-    let acc_id: i64 = match transaction.query("insert into account (
+    let acc_id: i64 = match transaction.query(
+        "insert into account (
             id,
             created,
             modified
@@ -140,31 +138,27 @@ pub fn create_account_with_email(conn: &mut postgres::Connection, email: &str) -
             current_timestamp
         )
         returning id",
-                            &[]) {
-        Ok(rows) => {
-            match rows.iter().next() {
-                Some(row) => {
-                    match row.get_opt(0) {
-                        None => return Err(DBError::new("Invalid column")),
-                        Some(res) => {
-                            match res {
-                                Err(e) => return Err(DBError::new(e)),
-                                Ok(id) => {
-                                    debug!("create_account_with_email: new account id: {}", id);
-                                    id
-                                }
-                            }
-                        }
+        &[],
+    ) {
+        Ok(rows) => match rows.iter().next() {
+            Some(row) => match row.get_opt(0) {
+                None => return Err(DBError::new("Invalid column")),
+                Some(res) => match res {
+                    Err(e) => return Err(DBError::new(e)),
+                    Ok(id) => {
+                        debug!("create_account_with_email: new account id: {}", id);
+                        id
                     }
-                }
-                None => return Err(DBError::new("Insert did not return new id.")),
-            }
-        }
+                },
+            },
+            None => return Err(DBError::new("Insert did not return new id.")),
+        },
         Err(e) => return Err(DBError::new(&e.to_string())),
     };
     /// If we got here, then acc_id is the id of the new account.
     /// But we can't commit yet - we still need to add email.
-    match transaction.execute("insert into account_email (
+    match transaction.execute(
+        "insert into account_email (
             id,
             account,
             email,
@@ -177,7 +171,8 @@ pub fn create_account_with_email(conn: &mut postgres::Connection, email: &str) -
             current_timestamp,
             current_timestamp
         )",
-                              &[&acc_id, &email]) {
+        &[&acc_id, &email],
+    ) {
         Ok(_) => {
             /// Insert ok, let's commit...
             match transaction.commit() {
@@ -190,53 +185,62 @@ pub fn create_account_with_email(conn: &mut postgres::Connection, email: &str) -
         }
         Err(e) => {
             // Insert failed...
-            Err(DBError::new(&format!("Failed to insert account_email: {}", e)))
+            Err(DBError::new(
+                &format!("Failed to insert account_email: {}", e),
+            ))
         }
     }
 }
 
 pub fn get_user_account_emails(conn: &mut postgres::Connection, acc_id: i64) -> Result<Box<Vec<String>>, DBError> {
-    match conn.query("select email from account_email where account = $1",
-                     &[&acc_id]) {
+    match conn.query(
+        "select email from account_email where account = $1",
+        &[&acc_id],
+    ) {
         Ok(rows) => {
             let v = rows.iter().map(|r| r.get(0)).collect();
             let b = Box::new(v);
             Ok(b)
         }
-        Err(e) => Err(DBError::new(&format!("Error while getting account emails: {}", e))),
+        Err(e) => Err(DBError::new(
+            &format!("Error while getting account emails: {}", e),
+        )),
     }
 }
 
 pub fn get_user_account_info(conn: &mut postgres::Connection, acc_id: i64) -> Result<Option<AccountInfo>, DBError> {
     let emails = get_user_account_emails(conn, acc_id)?;
-    match conn.query("select
+    match conn.query(
+        "select
             created,
             modified
         from account
         where id = $1",
-                     &[&acc_id]) {
-        Ok(rows) => {
-            match rows.iter().next() {
-                Some(row) => {
-                    let created = row.get(0);
-                    let modified = row.get(1);
+        &[&acc_id],
+    ) {
+        Ok(rows) => match rows.iter().next() {
+            Some(row) => {
+                let created = row.get(0);
+                let modified = row.get(1);
 
-                    let acc_info = AccountInfo {
-                        created: created,
-                        modified: modified,
-                        emails: emails,
-                    };
-                    Ok(Some(acc_info))
-                }
-                None => Ok(None),
+                let acc_info = AccountInfo {
+                    created: created,
+                    modified: modified,
+                    emails: emails,
+                };
+                Ok(Some(acc_info))
             }
-        }
-        Err(e) => Err(DBError::new(&format!("Error getting user account into: {}", e))),
+            None => Ok(None),
+        },
+        Err(e) => Err(DBError::new(
+            &format!("Error getting user account into: {}", e),
+        )),
     }
 }
 
 pub fn insert_login_token(conn: &mut postgres::Connection, account_id: &i64, token: &str) -> Result<(), DBError> {
-    match conn.execute("insert into login_token (
+    match conn.execute(
+        "insert into login_token (
             id,
             account,
             token,
@@ -253,7 +257,8 @@ pub fn insert_login_token(conn: &mut postgres::Connection, account_id: &i64, tok
             current_timestamp,
             current_timestamp
         )",
-                       &[&account_id, &token]) {
+        &[&account_id, &token],
+    ) {
         Ok(_) => Ok(()),
         Err(e) => Err(DBError::new(&e.to_string())),
     }
@@ -262,27 +267,29 @@ pub fn insert_login_token(conn: &mut postgres::Connection, account_id: &i64, tok
 /// Get account id by login token.
 /// Only active tokens are queried.
 pub fn get_login_token_account(conn: &mut postgres::Connection, token: &str) -> Result<Option<i64>, DBError> {
-    match conn.query("select account
+    match conn.query(
+        "select account
         from login_token
         where token = $1 and used = false",
-                     &[&token]) {
+        &[&token],
+    ) {
         Err(e) => Err(DBError::new(&e.to_string())),
-        Ok(rows) => {
-            match rows.iter().next() {
-                Some(row) => Ok(row.get(0)),
-                None => Ok(None),
-            }
-        }
+        Ok(rows) => match rows.iter().next() {
+            Some(row) => Ok(row.get(0)),
+            None => Ok(None),
+        },
     }
 }
 
-pub fn insert_entry(conn: &mut postgres::Connection,
-                    account_id: &i64,
-                    bank_account: &i64,
-                    ts: &Timespec,
-                    amount_str: &str)
-                    -> Result<(), DBError> {
-    match conn.execute("insert into entry (
+pub fn insert_entry(
+    conn: &mut postgres::Connection,
+    account_id: &i64,
+    bank_account: &i64,
+    ts: &Timespec,
+    amount_str: &str,
+) -> Result<(), DBError> {
+    match conn.execute(
+        "insert into entry (
                             id,
                             bank_account,
                             ts,
@@ -304,16 +311,18 @@ pub fn insert_entry(conn: &mut postgres::Connection,
                             current_timestamp,
                             current_timestamp
                         )",
-                       &[&account_id, &bank_account, &ts, &amount_str]) {
+        &[&account_id, &bank_account, &ts, &amount_str],
+    ) {
         Ok(_) => Ok(()),
         Err(e) => Err(DBError::new(&format!("Failed to insert entry: {}", e))),
     }
 }
 
 pub fn get_entry(
-        conn: &mut postgres::Connection,
-        account_id: i64,
-        entry_id: i64) -> Result<Option<EntryInfo>, DBError> {
+    conn: &mut postgres::Connection,
+    account_id: i64,
+    entry_id: i64,
+) -> Result<Option<EntryInfo>, DBError> {
     let sql = "
         select
             entry.id,
@@ -343,18 +352,19 @@ pub fn get_entry(
                 bank_account: bank_account_name,
                 currency: bank_account_currency,
                 id: id,
-                ts: ts
+                ts: ts,
             }))
         }
-        None => Ok(None)
+        None => Ok(None),
     }
 }
 
 pub fn update_entry_amount(
-        conn: &mut postgres::Connection,
-        account_id: i64,
-        entry_id: i64,
-        amount: String) -> Result<(), DBError> {
+    conn: &mut postgres::Connection,
+    account_id: i64,
+    entry_id: i64,
+    amount: String,
+) -> Result<(), DBError> {
     let sql = "
         update entry
         set
@@ -399,28 +409,28 @@ pub fn get_entries(conn: &mut postgres::Connection, account_id: i64) -> Result<V
         order by entry.ts desc
         limit 1024";
     match conn.query(sql, &[&account_id]) {
-        Ok(rows) => {
-            Ok(rows.iter()
-                   .map(|row| {
-                        EntryInfo {
-                            id: row.get(0),
-                            bank_account: row.get(1),
-                            amount: row.get(2),
-                            currency: row.get(3),
-                            ts: row.get(4),
-                        }
-                    })
-                   .collect())
-        }
+        Ok(rows) => Ok(
+            rows.iter()
+                .map(|row| {
+                    EntryInfo {
+                        id: row.get(0),
+                        bank_account: row.get(1),
+                        amount: row.get(2),
+                        currency: row.get(3),
+                        ts: row.get(4),
+                    }
+                })
+                .collect(),
+        ),
         Err(e) => Err(DBError::new(&e.to_string())),
     }
 }
 
 pub fn get_entries_by_bank_account(
-        conn: &mut postgres::Connection,
-        account_id: i64,
-        bank_account_name: &str
-    ) -> Result<Vec<EntryInfo>, DBError> {
+    conn: &mut postgres::Connection,
+    account_id: i64,
+    bank_account_name: &str,
+) -> Result<Vec<EntryInfo>, DBError> {
     let sql = "
         select
             entry.id,
@@ -439,30 +449,33 @@ pub fn get_entries_by_bank_account(
         order by entry.ts
         limit 4096";
     match conn.query(sql, &[&account_id, &bank_account_name]) {
-        Ok(rows) => Ok(rows.iter()
-            .map(|row| {
-                EntryInfo {
-                    id: row.get(0),
-                    bank_account: row.get(1),
-                    amount: row.get(2),
-                    currency: row.get(3),
-                    ts: row.get(4),
-
-                }
-            })
-            .collect()),
-        Err(err) => Err(DBError::new(&err.to_string()))
+        Ok(rows) => Ok(
+            rows.iter()
+                .map(|row| {
+                    EntryInfo {
+                        id: row.get(0),
+                        bank_account: row.get(1),
+                        amount: row.get(2),
+                        currency: row.get(3),
+                        ts: row.get(4),
+                    }
+                })
+                .collect(),
+        ),
+        Err(err) => Err(DBError::new(&err.to_string())),
     }
 }
 
 /// Delete entry.
 /// The account_id is redundant, but we use it for security.
 pub fn delete_entry(conn: &mut postgres::Connection, account_id: i64, entry_id: i64) -> Result<(), DBError> {
-    conn.execute("update entry
+    conn.execute(
+        "update entry
                  set deleted = true, modified = current_timestamp
                  where id = $2
                  and bank_account in (select id from bank_account where account = $1)",
-                 &[&account_id, &entry_id])?;
+        &[&account_id, &entry_id],
+    )?;
     Ok(())
 }
 
@@ -478,24 +491,25 @@ pub fn get_bank_accounts(conn: &mut postgres::Connection, account_id: i64) -> Re
             and bank_account.deleted = false
         order by bank_account.name, bank_account.id";
     match conn.query(sql, &[&account_id]) {
-        Ok(rows) => {
-            Ok(rows.iter()
-                   .map(|row| {
-                BankAccount {
-                    id: row.get(0),
-                    name: row.get(1),
-                    currency: row.get(2),
-                }
-            })
-                   .collect())
-        }
+        Ok(rows) => Ok(
+            rows.iter()
+                .map(|row| {
+                    BankAccount {
+                        id: row.get(0),
+                        name: row.get(1),
+                        currency: row.get(2),
+                    }
+                })
+                .collect(),
+        ),
         Err(err) => Err(DBError::from(err)),
     }
 }
 
-pub fn get_bank_account_infos(conn: &mut postgres::Connection,
-                              account_id: i64)
-                              -> Result<Vec<BankAccountInfo>, DBError> {
+pub fn get_bank_account_infos(
+    conn: &mut postgres::Connection,
+    account_id: i64,
+) -> Result<Vec<BankAccountInfo>, DBError> {
     let sql = "
         select
             bank_account_last_entry.name,
@@ -529,27 +543,28 @@ pub fn get_bank_account_infos(conn: &mut postgres::Connection,
             bank_account_last_entry.currency
     ";
     match conn.query(sql, &[&account_id]) {
-        Ok(rows) => {
-            Ok(rows.iter()
-                   .map(|row| {
-                BankAccountInfo {
-                    bank_account: row.get(0),
-                    amount: row.get(1),
-                    currency: row.get(2),
-                    ts: row.get(3),
-                }
-            })
-                   .collect())
-        }
+        Ok(rows) => Ok(
+            rows.iter()
+                .map(|row| {
+                    BankAccountInfo {
+                        bank_account: row.get(0),
+                        amount: row.get(1),
+                        currency: row.get(2),
+                        ts: row.get(3),
+                    }
+                })
+                .collect(),
+        ),
         Err(e) => Err(DBError::from(e)),
     }
 }
 
-pub fn insert_bank_account(conn: &mut postgres::Connection,
-                           account_id: i64,
-                           name: &str,
-                           currency: &str)
-                           -> Result<(), DBError> {
+pub fn insert_bank_account(
+    conn: &mut postgres::Connection,
+    account_id: i64,
+    name: &str,
+    currency: &str,
+) -> Result<(), DBError> {
     let sql = "insert into bank_account (
         id,
         account,
@@ -599,13 +614,15 @@ pub fn get_currency_info(conn: &mut postgres::Connection, account_id: i64) -> Re
         group by currency
         order by currency";
     let rows = conn.query(sql, &[&account_id])?;
-    Ok(rows.iter()
-           .map(|row| {
-        CurrencyInfo {
-            currency: row.get(0),
-            amount: row.get(1),
-            ts: row.get(2),
-        }
-    })
-           .collect())
+    Ok(
+        rows.iter()
+            .map(|row| {
+                CurrencyInfo {
+                    currency: row.get(0),
+                    amount: row.get(1),
+                    ts: row.get(2),
+                }
+            })
+            .collect(),
+    )
 }

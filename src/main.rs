@@ -20,18 +20,19 @@ extern crate hyper;
 extern crate lettre;
 extern crate logger;
 extern crate maud;
+extern crate mime;
 extern crate params;
 extern crate plugin;
 extern crate postgres;
+extern crate postgres_shared;
 extern crate psutil;
 extern crate r2d2;
 extern crate r2d2_postgres;
 extern crate router;
 extern crate time;
+extern crate toml;
 extern crate url;
 extern crate uuid;
-extern crate toml;
-extern crate mime;
 
 // use std::path;
 use iron::prelude::*;
@@ -53,10 +54,12 @@ fn load_config_or_exit() -> model::Config {
             Ok(f) => f,
             Err(e) => {
                 error!("Failed to open config file {}: {}.", config_filename, e);
-                debug!("Current directory: {}.",
-                       std::env::current_dir()
-                           .map(|d| d.to_str().unwrap_or("<unknown>").to_string())
-                           .unwrap_or("<unknown>".to_string()));
+                debug!(
+                    "Current directory: {}.",
+                    std::env::current_dir()
+                        .map(|d| d.to_str().unwrap_or("<unknown>").to_string())
+                        .unwrap_or("<unknown>".to_string())
+                );
                 std::process::exit(1);
             }
         };
@@ -73,7 +76,7 @@ fn load_config_or_exit() -> model::Config {
     }
     match toml::from_str::<ConfigWrapper>(&toml_source) {
         Err(decode_error) => {
-            debug!("Decode error: {}.", decode_error);
+            error!("Decode error while parsing config: {}.", decode_error);
             std::process::exit(1);
         }
         Ok(conf) => conf.config,
@@ -92,7 +95,9 @@ impl ConfExtensionMiddleware {
 
 impl iron::BeforeMiddleware for ConfExtensionMiddleware {
     fn before(&self, request: &mut iron::Request) -> iron::IronResult<()> {
-        request.extensions.insert::<model::Config>(self.conf.clone());
+        request
+            .extensions
+            .insert::<model::Config>(self.conf.clone());
         Ok(())
     }
 }
@@ -113,47 +118,67 @@ fn main() {
     router.get("/favicon.ico", favicon, "favicon");
     router.get("/", page::main::handle_main, "main");
     router.get("/about", page::about::handle_about, "about");
-    router.get("/accounts",
-               page::bank_accounts::handle_bank_accounts,
-               "bank-accounts");
+    router.get(
+        "/accounts",
+        page::bank_accounts::handle_bank_accounts,
+        "bank-accounts",
+    );
     router.get("/add", page::add::handle_add, "add");
-    router.get("/add-bank-account",
-               page::add_bank_account::handle_get_add_bank_account,
-               "add-bank-account");
+    router.get(
+        "/add-bank-account",
+        page::add_bank_account::handle_get_add_bank_account,
+        "add-bank-account",
+    );
     router.get("/currency", page::currency::handle_currency, "currency");
     router.get("/delete", page::delete::handle_delete, "delete");
     router.get("/edit", page::edit::handle_edit, "edit");
     router.get("/export", page::export::handle_export, "export");
-    router.get("/export/:filename",
-               page::export::handle_export_file,
-               "export-file");
+    router.get(
+        "/export/:filename",
+        page::export::handle_export_file,
+        "export-file",
+    );
     router.get("/graph", page::graph::handle_graph, "graph");
     router.get("/logout", page::logout::handle_get_logout, "logout");
-    router.get("/new-session",
-               page::new_session::handle_new_session,
-               "new-session");
-    router.get("/new-session/:token",
-               page::new_session::handle_get_new_session_token,
-               "new-session-token");
+    router.get(
+        "/new-session",
+        page::new_session::handle_new_session,
+        "new-session",
+    );
+    router.get(
+        "/new-session/:token",
+        page::new_session::handle_get_new_session_token,
+        "new-session-token",
+    );
     router.get("/profile", page::profile::handle_profile, "profile");
     router.post("/add", page::add::handle_post_add, "add");
-    router.post("/add-bank-account",
-               page::add_bank_account::handle_post_add_bank_account,
-               "add-bank-account");
+    router.post(
+        "/add-bank-account",
+        page::add_bank_account::handle_post_add_bank_account,
+        "add-bank-account",
+    );
     router.post("/edit", page::edit::handle_post_edit, "edit");
     router.post("/logout", page::logout::handle_post_logout, "logout");
-    router.post("/new-session",
-                page::new_session::handle_post_new_session,
-                "new-session");
+    router.post(
+        "/new-session",
+        page::new_session::handle_post_new_session,
+        "new-session",
+    );
     // let mut mount = mount::Mount::new();
     // mount.mount("/static", staticfile::Static::new(path::Path::new("static/")));
     // mount.mount("/", router);
     let mut chain = Chain::new(router);
     let (logger_before, logger_after) = logger::Logger::new(None);
-    let conf_extension_middleware = ConfExtensionMiddleware::new(conf);
+    let conf_extension_middleware = ConfExtensionMiddleware::new(conf.clone());
     chain.link_before(logger_before);
     chain.link_before(conf_extension_middleware);
-    let pool = common::create_database_pool();
+    let pool = common::create_database_pool(
+        &conf.db_host,
+        conf.db_port,
+        &conf.db_name,
+        &conf.db_username,
+        &conf.db_password,
+    );
     let database_pool_middleware = common::DatabasePoolMiddleware { pool: pool };
     chain.link_before(database_pool_middleware);
     chain.link_after(logger_after);

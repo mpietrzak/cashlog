@@ -38,8 +38,10 @@ pub fn tmpl_new_session_result(success: bool) -> Markup {
         true => "Login successful",
         false => "Login failed",
     };
-    tmpl_base(title,
-              html! {
-        p (text)
-    })
+    tmpl_base(
+        title,
+        html! {
+            p (text)
+        },
+    )
 }

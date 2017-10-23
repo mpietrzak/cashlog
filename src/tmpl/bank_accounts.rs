@@ -1,6 +1,6 @@
 
-use maud::html;
 use maud::Markup;
+use maud::html;
 
 use model::BankAccountInfo;
 use tmpl::common::tmpl_base;
