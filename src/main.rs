@@ -40,6 +40,7 @@ use std::io::Read;
 
 mod common;
 mod db;
+mod logging;
 mod model;
 mod page;
 mod tmpl;
@@ -110,7 +111,7 @@ pub fn favicon(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
 }
 
 fn main() {
-    env_logger::init().unwrap();
+    logging::env_logger_init();
     let conf = load_config_or_exit();
     let port = conf.port;
     debug!("Config loaded:\n{:?}", conf);
