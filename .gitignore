@@ -1,3 +1,5 @@
 *.bk
 .*.swp
+Cargo.lock
+cashlog.toml
 target
