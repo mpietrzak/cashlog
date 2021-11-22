@@ -1,76 +1,69 @@
+use actix_web::HttpMessage;
 
-use std::collections::HashMap;
+use crate::common;
+use crate::db;
+use crate::tmpl;
+use crate::tmpl::add_bank_account::AddBankAccountTmplData;
 
-use iron;
-use iron::IronResult;
-use iron::Request;
-use iron::Response;
-use params::Params;
-use params::Value;
-use plugin::Pluggable; // get_ref
-
-use common;
-use db;
-use tmpl;
-
-pub fn handle_get_add_bank_account(_request: &mut Request) -> IronResult<Response> {
-    let errors = HashMap::new();
-    let values = HashMap::new();
-    let content = tmpl::add_bank_account::add_bank_account(values, errors);
-    Ok(Response::with((iron::status::Ok, content)))
+#[derive(Deserialize)]
+pub struct AddBankAccountParams {
+    pub name: String,
+    pub currency: String,
 }
 
-/// Extract form values from request.
-/// We might want to use something else than hashmap here some day to be
-/// more type safe...
-fn get_values(request: &mut Request) -> HashMap<String, String> {
-    let mut values = HashMap::new();
-    let params = request.get_ref::<Params>().unwrap();
-    if let Some(&Value::String(ref n)) = params.get("name") {
-        values.insert(String::from("name"), n.clone());
-    }
-    if let Some(&Value::String(ref n)) = params.get("currency") {
-        values.insert(String::from("currency"), n.clone());
-    }
-    values
+#[derive(Deserialize)]
+pub struct AddBankAccountParamsValidationResult {
+    pub name_err: Option<String>,
+    pub currency_err: Option<String>,
 }
 
-/// Take the raw form values data and return validation errors, if any.
-fn validate(values: &HashMap<String, String>) -> HashMap<String, String> {
-    let mut errors = HashMap::new();
-    if values.get("name").unwrap_or(&String::from("")) == "" {
-        errors.insert(String::from("name"), String::from("Name is required"));
-    }
-    if values.get("currency").unwrap_or(&String::from("")) == "" {
-        errors.insert(
-            String::from("currency"),
-            String::from("Currency is required"),
-        );
-    }
-    errors
+// /// Take the raw form values data and return validation errors, if any.
+// fn validate(params: AddBankAccountParams) -> AddBankAccountParamsValidationResult {
+//     let mut v = AddBankAccountParamsValidationResult {
+//         name_err: None,
+//         currency_err: None,
+//     };
+//     if params.name.trim().is_empty() {
+//         v.name_err = Some("Name is required".to_string());
+//     }
+//     if params.currency.trim().is_empty() {
+//         v.currency_err = Some("Currency is required".to_string());
+//     }
+//     v
+// }
+
+pub async fn handle_get_add_bank_account() -> impl actix_web::Responder {
+    let content = tmpl::add_bank_account::add_bank_account(&AddBankAccountTmplData {
+        name: "".into(),
+        name_err: "".into(),
+        curr: "".into(),
+        curr_err: "".into(),
+    })
+    .into_string();
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(content)
 }
 
-pub fn handle_post_add_bank_account(request: &mut Request) -> IronResult<Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let account_id = match common::get_session_account_id(&mut conn, request) {
-        Some(account_id) => account_id,
-        None => return Ok(itry!(common::redirect(request, "new-session"))),
+pub async fn handle_post_add_bank_account(
+    request: actix_web::HttpRequest,
+    pool: actix_web::web::Data<common::DatabasePool>,
+    params: actix_web::web::Form<AddBankAccountParams>,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = match request.cookie("session") {
+        Some(c) => c,
+        None => {
+            return actix_web::HttpResponse::SeeOther()
+                .header("Location", "new-session")
+                .body("Redirecting...")
+        }
     };
-    let values = get_values(request);
-    let errors = validate(&values);
-    if errors.is_empty() {
-        let ref name = values["name"];
-        let ref currency = values["currency"];
-        itry!(db::insert_bank_account(
-            &mut conn,
-            account_id,
-            &name,
-            &currency
-        ));
-        Ok(itry!(common::redirect(request, "add")))
-    } else {
-        // show form
-        let content = tmpl::add_bank_account::add_bank_account(values, errors);
-        Ok(Response::with((iron::status::Ok, content)))
-    }
+    let sess_key = cookie.value();
+    let account_id = db::get_sess_val(&mut conn, sess_key, "account")
+        .unwrap()
+        .parse()
+        .unwrap();
+    db::insert_bank_account(&mut conn, account_id, &params.name, &params.currency).unwrap();
+    actix_web::HttpResponse::SeeOther().header("Location", ".").body("Redirecting...")
 }

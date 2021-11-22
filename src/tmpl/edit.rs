@@ -1,8 +1,7 @@
-
 use maud;
 use maud::html;
 
-use tmpl::common::tmpl_base;
+use crate::tmpl::common::tmpl_base;
 
 pub struct FormData {
     pub id: i64,
@@ -15,8 +14,14 @@ pub fn tmpl_edit(form_data: &FormData) -> maud::Markup {
             table {
                 tbody {
                     tr {
-                        td label "Amount"
-                        td input name="amount" type="text" value=(form_data.amount.0) /
+                        td {
+                            label {
+                                "Amount"
+                            }
+                        }
+                        td {
+                            input name="amount" type="text" value=(form_data.amount.0) /
+                        }
                         td class="error" {
                             @if let Some(ref err) = form_data.amount.1 {
                                 (err)
@@ -25,8 +30,10 @@ pub fn tmpl_edit(form_data: &FormData) -> maud::Markup {
                     }
                     tr {
                         td align="right" colspan="2" {
-                            input name="id" type="hidden" value=(form_data.id)
-                            button type="submit" "Save"
+                            input name="id" type="hidden" value=(form_data.id) /
+                            button type="submit" {
+                                "Save"
+                            }
                         }
                     }
                 }

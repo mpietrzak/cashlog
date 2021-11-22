@@ -1,28 +1,35 @@
+use actix_web;
+use actix_web::HttpMessage;
 
-use iron;
-use params;
-use plugin::Pluggable;
+use crate::common;
+use crate::db;
 
-use common;
-use db;
+#[derive(Deserialize)]
+pub struct DeletePostParams {
+    pub id: i64,
+}
 
-pub fn handle_delete(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let redirect_response = itry!(common::redirect(request, "."));
-    let acc_id = match common::get_session_account_id(&mut conn, request) {
-        Some(acc_id) => acc_id,
-        None => return Ok(redirect_response),
-    };
-    let entry_id = {
-        let params = {
-            let params = itry!(request.get_ref::<params::Params>());
-            params
-        };
-        match params.find(&["id"]) {
-            Some(&params::Value::String(ref id_str)) => itry!(id_str.parse()),
-            _ => return Ok(redirect_response),
+pub async fn handle_delete(
+    pool: actix_web::web::Data<common::DatabasePool>,
+    request: actix_web::HttpRequest,
+    params: actix_web::web::Query<DeletePostParams>,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = match request.cookie("session") {
+        Some(c) => c,
+        None => {
+            return actix_web::HttpResponse::SeeOther()
+                .header("Location", "new-session")
+                .body("Redirecting...")
         }
     };
-    itry!(db::delete_entry(&mut conn, acc_id, entry_id));
-    Ok(redirect_response)
+    let sess_key = cookie.value();
+    let acc_id = db::get_sess_val(&mut conn, sess_key, "account")
+        .unwrap()
+        .parse()
+        .unwrap();
+    db::delete_entry(&mut conn, acc_id, params.id).unwrap();
+    actix_web::HttpResponse::SeeOther()
+        .header("Location", ".")
+        .body("Redirecting...")
 }

@@ -1,30 +1,28 @@
-
-//! Handle login.
-
-use cookie::Cookie;
-use iron;
-use iron::headers::SetCookie;
-use iron::mime::Mime;
-use params::Params;
-use plugin::Pluggable;
-use router::Router;
-use time::Duration;
 use uuid;
 
-use common;
-use db;
-use model;
-use tmpl::new_session::tmpl_new_session;
-use tmpl::new_session::tmpl_new_session_email_sent;
-use tmpl::new_session::tmpl_new_session_result;
-use util::get_str;
+use crate::db;
+use crate::tmpl::new_session::tmpl_new_session;
+use crate::tmpl::new_session::tmpl_new_session_result;
+use crate::common;
+use crate::tmpl::new_session::tmpl_new_session_email_sent;
 
-pub fn handle_new_session(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
+#[derive(Deserialize)]
+pub struct GetNewSessionWithTokenParams {
+    pub token: String,
+}
+
+/// The params of the "new session" page when invoked via POST.
+#[derive(Deserialize)]
+pub struct PostNewSessionParams {
+    pub email: String,
+}
+
+/// The entry page for the new session flow, shows the basic form.
+pub async fn handle_new_session() -> impl actix_web::Responder {
     let resp_html = tmpl_new_session().into_string();
-    let ct = "text/html".parse::<Mime>().unwrap();
-    Ok(iron::response::Response::with(
-        (iron::status::Ok, ct, resp_html),
-    ))
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(resp_html)
 }
 
 /// Use clicked "yes" on login via email form.
@@ -33,139 +31,80 @@ pub fn handle_new_session(_: &mut iron::Request) -> iron::IronResult<iron::Respo
 ///   - if not, create empty account with new id,
 ///   - if yes, then get account id we're trying to log in,
 ///   - the DB constraint prevent race here,
-/// - generate login token,
+/// - generate the login token,
 /// - store it in login token table,
 /// - send an email to given user
 ///   - if user is in fact able to read email, then they'll be able to
 ///     setup the session.
-pub fn handle_post_new_session(r: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let o_email = handle_post_new_session_form(r);
-    let mut conn = itry!(common::get_pooled_db_connection(r));
-    match o_email {
-        Some(email) => {
-            let account_id: i64 = match db::get_account_id_by_email(&mut conn, &email) {
-                Ok(oa) => match oa {
-                    Some(a) => a,
-                    None => itry!(db::create_account_with_email(&mut conn, &email)),
-                },
-                Err(e) => {
-                    return Err(iron::IronError::new(
-                        e,
-                        (iron::status::InternalServerError, "Failed to query account"),
-                    ))
-                }
-            };
-            let token: String = uuid::Uuid::new_v4().to_string();
-            let use_email: bool = {
-                r.extensions
-                    .get::<model::Config>()
-                    .map_or(false, |c| c.use_email)
-            };
-            let base_url = itry!(common::get_base_url(r));
-            itry!(db::insert_login_token(&mut conn, &account_id, &token));
-            itry!(common::send_email_login_email(
-                &base_url,
-                &email,
-                &token,
-                use_email
-            ));
-            let resp_content_type = "text/html".parse::<Mime>().unwrap();
-            let resp_html = tmpl_new_session_email_sent().into_string();
-            Ok(iron::response::Response::with(
-                (iron::status::Ok, resp_content_type, resp_html),
-            ))
+pub async fn handle_post_new_session(
+    config: actix_web::web::Data<crate::model::Config>,
+    pool: actix_web::web::Data<common::DatabasePool>,
+    params: actix_web::web::Form<PostNewSessionParams>) -> impl actix_web::Responder {
+    let mut conn = pool.get().expect("Error getting db conn from pool");
+    let acc_id: i64 = match db::get_acc_id_by_email(&mut conn, &params.email) {
+        Ok(oa) => match oa {
+            Some(a) => a,
+            None => db::create_acc_with_email(&mut conn, &params.email).expect("Error creating an account"),
+        },
+        Err(_) => {
+            return actix_web::HttpResponse::InternalServerError().body(
+                "Failed to query account")
         }
-        None => {
-            let resp_html = tmpl_new_session().into_string();
-            Ok(iron::Response::with((
-                iron::status::Ok,
-                "text/html".parse::<Mime>().unwrap(),
-                resp_html,
-            )))
-        }
-    }
+    };
+    let token: String = uuid::Uuid::new_v4().to_string();
+    let use_email= config.use_email;
+    db::insert_login_token(&mut conn, &acc_id, &token).expect("Error inserting login token");
+    common::send_email_login_email(
+        &config.base_url, &params.email, &token, use_email
+    ).unwrap();
+    let resp_html = tmpl_new_session_email_sent().into_string();
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body( resp_html)
 }
 
-fn set_session_cookie(resp: &mut iron::Response, session_key: &str) -> Result<(), common::Error> {
-    let session_cookie = Cookie::build("session", String::from(session_key))
-        .path("/")
-        .max_age(Duration::days(365))
-        .finish();
-    resp.headers
-        .set(SetCookie(vec![session_cookie.to_string()]));
-    Ok(())
-}
-
-pub fn get_request_token(r: &iron::Request) -> Option<String> {
-    r.extensions
-        .get::<Router>()
-        .unwrap()
-        .find("token")
-        .map(|s| String::from(s))
-}
-
-
-/// User clicks on login link in email.
+/// User clicks on the login link in the new-session email.
 /// URL contains the token.
-/// If token looks good, then we'll give user's browser the session cookie.
+/// If the token looks good, then we'll give user's browser the session cookie.
 /// We also need to mark token as consumed.
-pub fn handle_get_new_session_token(r: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(r));
-    let mk = get_request_token(r);
-    match mk {
-        Some(login_token) => {
-            debug!("Logging in with key {}.", login_token);
-            match db::get_login_token_account(&mut conn, &login_token) {
-                Err(e) => {
-                    return Err(iron::IronError::new(
-                        e,
-                        (iron::status::InternalServerError, "Failed to check token"),
-                    ))
-                }
-                Ok(oa) => {
-                    match oa {
-                        None => Ok(iron::Response::with((iron::status::Ok, "Invalid token"))),
-                        Some(account_id) => {
-                            /// Yeah, token is ok.
-                            /// TODO: mark token as used.
-                            let session_key: String = uuid::Uuid::new_v4().to_string();
-                            itry!(db::set_session_value(
-                                &mut conn,
-                                &session_key,
-                                "account",
-                                &format!("{}", account_id)
-                            ));
-                            let ct = "text/html".parse::<Mime>().unwrap();
-                            let mut resp = iron::Response::with((
-                                iron::status::Ok,
-                                ct,
-                                tmpl_new_session_result(true).into_string(),
-                            ));
-                            itry!(set_session_cookie(&mut resp, &session_key));
-                            Ok(resp)
-                        }
-                    }
+/// This is a GET link, which kind of breaks the HTTP proto, maybe we should present a web page
+/// where the user has a chance to consume the token by clicking a button?
+pub async fn handle_get_new_session_with_token(
+    pool: actix_web::web::Data<common::DatabasePool>,
+    params: actix_web::web::Path<GetNewSessionWithTokenParams>) -> impl actix_web::Responder {
+    use std::convert::TryInto;
+    let mut conn = pool.get().expect("Error getting database conn from pool");
+    debug!("Logging in with key {}.", &params.token);
+    match db::get_login_token_account(&mut conn, &params.token) {
+        Err(_) => {
+            return actix_web::HttpResponse::InternalServerError().body("Failed to check token");
+        }
+        Ok(oa) => {
+            match oa {
+                None => actix_web::HttpResponse::BadRequest().body("Invalid token"),
+                Some(acc_id) => {
+                    // Yeah, token is ok.
+                    // TODO: mark token as used.
+                    let session_key: String = uuid::Uuid::new_v4().to_string();
+                    db::set_session_value(
+                        &mut conn,
+                        &session_key,
+                        "account",
+                        &format!("{}", acc_id)
+                    ).unwrap();
+                    let cookie = actix_web::http::Cookie::build("session", session_key)
+                        .path("/")
+                        .secure(true)
+                        .max_age(std::time::Duration::from_secs(60 * 60 * 24 * 365 * 2).try_into().expect("Error converting durations"))
+                        .finish();
+                    let resp = actix_web::HttpResponse::Ok()
+                        .content_type("text/html")
+                        .cookie(cookie)
+                        .body(tmpl_new_session_result(true).into_string());
+                    resp
                 }
             }
         }
-        None => {
-            debug!("No token param found in URL.");
-            let ct = "text/html".parse::<Mime>().unwrap();
-            Ok(iron::Response::with((
-                iron::status::Ok,
-                ct,
-                tmpl_new_session_result(false).into_string(),
-            )))
-        }
     }
 }
 
-/// Extract stuff from the posted form.
-fn handle_post_new_session_form(r: &mut iron::Request) -> Option<String> {
-    let params = r.get_ref::<Params>().unwrap();
-    let r_email = get_str(params, "email");
-    match r_email {
-        Ok(email) => Some(email),
-        Err(_) => None,
-    }
-}

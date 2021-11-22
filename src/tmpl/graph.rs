@@ -1,16 +1,14 @@
-
 use maud;
 use maud::html;
-use time;
 
-use model::EntryInfo;
-use tmpl::common::tmpl_base;
+use crate::model::EntryInfo;
+use crate::tmpl::common::tmpl_base;
 
 pub fn tmpl_graph(entries: &Vec<EntryInfo>) -> maud::Markup {
     let d: Vec<(String, f64)> = entries
         .iter()
         .map(|e| {
-            let t = time::strftime("%Y-%m-%d %H:%M:%S", &time::at_utc(e.ts)).unwrap();
+            let t = e.ts.format("%Y-%m-%d %H:%M:%S").to_string();
             let a = e.amount.parse().unwrap();
             (t, a)
         })

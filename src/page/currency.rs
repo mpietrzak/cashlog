@@ -1,28 +1,25 @@
-
 //! Currency view.
+use actix_web;
+use actix_web::HttpMessage;
 
-use iron;
-use iron::IronResult;
-use iron::Response;
-use mime::Mime;
+use crate::common;
+use crate::db;
+use crate::tmpl::currency::tmpl_currency;
 
-use common;
-use db;
-use tmpl::currency::tmpl_currency;
-
-pub fn handle_currency(request: &mut iron::Request) -> IronResult<Response> {
-    let pool = request
-        .extensions
-        .get::<common::DatabasePool>()
+pub async fn handle_currency(
+    request: actix_web::HttpRequest,
+    pool: actix_web::web::Data<common::DatabasePool>,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let sess_cookie = request.cookie("session").unwrap();
+    let sess_key = sess_cookie.value();
+    let acc_id = db::get_sess_val(&mut conn, sess_key, "account")
         .unwrap()
-        .clone();
-    let mut conn = itry!(pool.get());
-    let account_id = match common::get_session_account_id(&mut conn, request) {
-        Some(acc_id) => acc_id,
-        None => return Ok(itry!(common::redirect(request, "."))),
-    };
-    let currency_info = itry!(db::get_currency_info(&mut conn, account_id));
+        .parse()
+        .unwrap();
+    let currency_info = db::get_currency_info(&mut conn, acc_id).unwrap();
     let content = tmpl_currency(currency_info).into_string();
-    let ct = "text/html".parse::<Mime>().unwrap();
-    Ok(Response::with((iron::status::Ok, ct, content)))
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(content)
 }

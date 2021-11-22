@@ -1,8 +1,7 @@
-
 use maud;
 use maud::html;
 
-use tmpl::common::tmpl_base;
+use crate::tmpl::common::tmpl_base;
 
 pub fn tmpl_logout() -> maud::Markup {
     let content = html! {
@@ -10,12 +9,18 @@ pub fn tmpl_logout() -> maud::Markup {
             table.form {
                 tbody {
                     tr {
-                        td "Are you sure?"
+                        td {
+                            "Are you sure?"
+                        }
                     }
                     tr {
                         td align="right" {
-                            button type="submit" name="confirm" value="no" "No"
-                            button type="submit" name="confirm" value="yes" "Yes"
+                            button type="submit" name="confirm" value="no" {
+                                "No"
+                            }
+                            button type="submit" name="confirm" value="yes" {
+                                "Yes"
+                            }
                         }
                     }
                 }

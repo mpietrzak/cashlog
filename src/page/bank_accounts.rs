@@ -1,19 +1,30 @@
+use actix_web::HttpMessage;
 
-use iron;
-use mime::Mime;
+use crate::common;
+use crate::db;
+use crate::tmpl;
 
-use common;
-use db;
-use tmpl;
-
-pub fn handle_bank_accounts(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let acc_id = match common::get_session_account_id(&mut conn, request) {
-        Some(acc_id) => acc_id,
-        None => return Ok(itry!(common::redirect(request, "."))),
+pub async fn handle_bank_accounts(
+    pool: actix_web::web::Data<common::DatabasePool>,
+    request: actix_web::HttpRequest,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = match request.cookie("session") {
+        Some(c) => c,
+        None => {
+            return actix_web::HttpResponse::SeeOther()
+                .header("Location", "new-session")
+                .body("Redirecting...")
+        }
     };
-    let bank_accounts = itry!(db::get_bank_account_infos(&mut conn, acc_id));
+    let sess_key = cookie.value();
+    let acc_id = db::get_sess_val(&mut conn, sess_key, "account")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let bank_accounts = db::get_bank_account_infos(&mut conn, acc_id).unwrap();
     let content = tmpl::bank_accounts::tmpl_bank_accounts(&bank_accounts).into_string();
-    let ct = "text/html".parse::<Mime>().unwrap();
-    Ok(iron::Response::with((iron::status::Ok, ct, content)))
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(content)
 }

@@ -1,21 +1,26 @@
-
-use maud::Markup;
 use maud::html;
+use maud::Markup;
 
-use tmpl::common::tmpl_base;
+use crate::tmpl::common::tmpl_base;
 
 pub fn tmpl_new_session() -> Markup {
     let content = html! {
-        p "Give me your e-mail and I'll send you the login link."
+        p {
+            "Give me your e-mail and I'll send you the login link."
+        }
         form method="post" {
             table.form {
                 tbody {
                     tr {
-                        td input type="text" name="email" /
+                        td {
+                            input type="text" name="email" {}
+                        }
                     }
                     tr {
                         td align="right" {
-                            button type="submit" "Ok"
+                            button type="submit" {
+                                "Ok"
+                            }
                         }
                     }
                 }
@@ -27,7 +32,9 @@ pub fn tmpl_new_session() -> Markup {
 
 pub fn tmpl_new_session_email_sent() -> Markup {
     let content = html! {
-        p "Email sent."
+        p {
+            "Email sent."
+        }
     };
     tmpl_base("New Session", content)
 }
@@ -41,7 +48,9 @@ pub fn tmpl_new_session_result(success: bool) -> Markup {
     tmpl_base(
         title,
         html! {
-            p (text)
+            p {
+                (text)
+            }
         },
     )
 }

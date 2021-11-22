@@ -1,34 +1,38 @@
+use actix_web::HttpMessage;
 
-use iron;
+use crate::common;
+use crate::db;
+use crate::model::EntryInfo;
+use crate::tmpl;
 
-use common;
-use db;
-use model::EntryInfo;
-use params::{Params, Value};
-use plugin::Pluggable;
-// get_ref
-use tmpl;
+#[derive(Deserialize)]
+pub struct GraphParams {
+    pub account: String,
+}
 
-
-pub fn handle_graph(request: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let bank_account = {
-        let map = request.get_ref::<Params>().unwrap();
-        match map.find(&["account"]) {
-            Some(&Value::String(ref bank_account)) => bank_account.clone(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound)),
+pub async fn handle_graph(
+    pool: actix_web::web::Data<common::DatabasePool>,
+    request: actix_web::HttpRequest,
+    params: actix_web::web::Query<GraphParams>,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = match request.cookie("session") {
+        Some(c) => c,
+        None => {
+            return actix_web::HttpResponse::SeeOther()
+                .header("Location", "new-session")
+                .body("Redirecting...")
         }
     };
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let o_account_id = common::get_session_account_id(&mut conn, request);
-    if let Some(account_id) = o_account_id {
-        let entries: Vec<EntryInfo> = itry!(db::get_entries_by_bank_account(
-            &mut conn,
-            account_id,
-            &bank_account
-        ));
-        let resp_html = tmpl::graph::tmpl_graph(&entries);
-        Ok(iron::Response::with((iron::status::Ok, resp_html)))
-    } else {
-        Ok(itry!(common::redirect(request, "new-session")))
-    }
+    let sess_key = cookie.value();
+    let account_id = db::get_sess_val(&mut conn, sess_key, "account")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let entries: Vec<EntryInfo> =
+        db::get_entries_by_bank_account(&mut conn, account_id, &params.account).unwrap();
+    let resp_html = tmpl::graph::tmpl_graph(&entries).into_string();
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(resp_html)
 }

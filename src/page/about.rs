@@ -1,9 +1,8 @@
+use crate::tmpl;
 
-use iron;
-
-use tmpl;
-
-pub fn handle_about(_: &mut iron::Request) -> iron::IronResult<iron::Response> {
-    let content = tmpl::about::tmpl_about();
-    Ok(iron::Response::with((iron::status::Ok, content)))
+pub async fn handle_about() -> impl actix_web::Responder {
+    let content = tmpl::about::tmpl_about().into_string();
+    actix_web::HttpResponse::Ok()
+        .content_type("text/html")
+        .body(content)
 }

@@ -1,81 +1,82 @@
+use actix_web;
+use actix_web::HttpMessage;
+use actix_web::Responder;
 
-use iron;
-use iron::IronResult;
-use iron::Request;
-use iron::Response;
-use params::Params;
-use params::Value;
-use plugin::Pluggable;
+use crate::common;
+use crate::db;
+use crate::tmpl::edit::tmpl_edit;
+use crate::tmpl::edit::FormData;
 
-use common;
-use db;
-use tmpl::edit::FormData;
-use tmpl::edit::tmpl_edit;
+/// The query or post params of the edit page.
+#[derive(Deserialize)]
+pub struct EditParams {
+    /// The id of the entry to edit.
+    id: String,
+}
 
-pub fn handle_edit(request: &mut Request) -> IronResult<Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let account_id = match common::get_session_account_id(&mut conn, request) {
-        Some(account_id) => account_id,
-        None => return Ok(itry!(common::redirect(request, "new-session"))),
-    };
-    let entry_id = {
-        let map = request.get_ref::<Params>().unwrap();
-        match map.find(&["id"]) {
-            Some(&Value::String(ref v)) => v.parse().unwrap(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound)),
+/// Params of the page where user saves the edits.
+#[derive(Deserialize)]
+pub struct EditPostParams {
+    id: String,
+    amount: String,
+}
+
+pub async fn handle_edit(
+    request: actix_web::HttpRequest,
+    pool: actix_web::web::Data<common::DatabasePool>,
+    params: actix_web::web::Query<EditParams>,
+) -> impl Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = request.cookie("session").unwrap();
+    let sess_key = cookie.value();
+    let account_id = match db::get_sess_val(&mut conn, sess_key, "account") {
+        Some(account_id) => account_id.parse().unwrap(),
+        None => {
+            return actix_web::HttpResponse::SeeOther()
+                .header("Location", "new-session")
+                .body("Redirecting to new session form");
         }
     };
-    let entry = match itry!(db::get_entry(&mut conn, account_id, entry_id)) {
+    let entry = match db::get_entry(&mut conn, account_id, params.id.parse().unwrap()).unwrap() {
         Some(entry) => entry,
-        None => return Ok(Response::with("not found")),
+        None => {
+            return actix_web::HttpResponse::InternalServerError().body("No such entry");
+        }
     };
     let form_data = FormData {
         id: entry.id,
         amount: (String::from(entry.amount), None),
     };
-    let resp = tmpl_edit(&form_data);
-    Ok(Response::with(resp))
+    let resp_body = tmpl_edit(&form_data).into_string();
+    actix_web::HttpResponse::Ok().body(resp_body)
 }
 
-pub fn handle_post_edit(request: &mut Request) -> IronResult<Response> {
-    let mut conn = itry!(common::get_pooled_db_connection(request));
-    let account_id = match common::get_session_account_id(&mut conn, request) {
-        Some(account_id) => account_id,
-        None => return Ok(itry!(common::redirect(request, "new-session"))),
+pub async fn handle_post_edit(
+    request: actix_web::HttpRequest,
+    pool: actix_web::web::Data<common::DatabasePool>,
+    params: actix_web::web::Form<EditPostParams>,
+) -> impl actix_web::Responder {
+    let mut conn = pool.get().unwrap();
+    let cookie = request.cookie("session").unwrap();
+    let sess_key = cookie.value();
+    let account_id = db::get_sess_val(&mut conn, sess_key, "account")
+        .unwrap()
+        .parse()
+        .unwrap();
+    if db::get_entry(&mut conn, account_id, params.id.parse().unwrap())
+        .unwrap()
+        .is_none()
+    {
+        return actix_web::HttpResponse::NotFound().body("Not found");
     };
-    let entry_id = {
-        let map = request.get_ref::<Params>().unwrap();
-        match map.find(&["id"]) {
-            Some(&Value::String(ref v)) => v.parse().unwrap(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound)),
-        }
-    };
-    if itry!(db::get_entry(&mut conn, account_id, entry_id)).is_none() {
-        return Ok(Response::with("not found"));
-    };
-    let amount_str = {
-        match request.get_ref::<Params>().unwrap().find(&["amount"]) {
-            Some(&Value::String(ref v)) => v.clone(),
-            _ => return Ok(iron::Response::with(iron::status::NotFound)),
-        }
-    };
-    match amount_str.parse::<f64>() {
-        Ok(_) => {
-            itry!(db::update_entry_amount(
-                &mut conn,
-                account_id,
-                entry_id,
-                amount_str
-            ));
-            Ok(itry!(common::redirect(request, "")))
-        }
-        Err(parse_error) => {
-            let form_data = FormData {
-                id: entry_id,
-                amount: (amount_str, Some(parse_error.to_string())),
-            };
-            let resp = tmpl_edit(&form_data);
-            Ok(Response::with(resp))
-        }
-    }
+    db::update_entry_amount(
+        &mut conn,
+        account_id,
+        params.id.parse().unwrap(),
+        params.amount.clone(),
+    )
+    .unwrap();
+    actix_web::HttpResponse::SeeOther()
+        .header("Location", ".")
+        .body("Redirecting...")
 }

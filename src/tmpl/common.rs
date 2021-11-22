@@ -1,11 +1,7 @@
-
 use maud;
+use maud::html;
 use maud::Markup;
 use maud::PreEscaped;
-use maud::html;
-use psutil;
-
-use util::human_bytes;
 
 pub fn tmpl_base(title: &str, content: Markup) -> Markup {
     html! {
@@ -14,7 +10,7 @@ pub fn tmpl_base(title: &str, content: Markup) -> Markup {
             (tmpl_head(title))
             body {
                 (tmpl_menu(true))
-                div class="content"  {
+                div class="content" {
                     (content)
                 }
                 (tmpl_foot())
@@ -25,19 +21,27 @@ pub fn tmpl_base(title: &str, content: Markup) -> Markup {
 
 /// Create the footer div.
 fn tmpl_foot() -> Markup {
-    let pid = psutil::getpid();
-    let mem_info = if let Ok(mem) = psutil::process::Memory::new(pid) {
-        (format!("Memory usage: {}.", human_bytes(mem.resident)))
+    /*
+    let mem_info = if let Ok(mem) = psutil::process::Process::current()
+        .expect("Failed to get current process info")
+        .memory_info()
+    {
+        format!("Memory usage: {}.", human_bytes(mem.rss()))
     } else {
         String::from("")
     };
+    */
+    let mem_info = "";
     html! {
         hr /
         div class="foot" {
             p {
-                "CashLog is mini-finance tracking app." br /
-                "CashLog is Open Source and it's written in Rust." br/
-                "CashLog uses cookies." br /
+                "CashLog is mini-finance tracking app."
+                br /
+                "CashLog is Open Source and it's written in Rust."
+                br /
+                "CashLog uses cookies."
+                br /
                 (mem_info)
             }
         }
@@ -176,7 +180,9 @@ fn tmpl_head(title: &str) -> Markup {
     };
     html! {
         head {
-            title (title)
+            title {
+                (title)
+            }
             meta name="viewport" content="width=device-width, initial-scale=1" /
             (tmpl_css())
         }
@@ -186,17 +192,35 @@ fn tmpl_head(title: &str) -> Markup {
 fn tmpl_menu(logged_in: bool) -> Markup {
     html! {
         div.menu {
-            div.menu-item { "[ " a href="/" "Entries" " ]" }
-            div.menu-item { "[ " a href="/accounts" "Accounts" " ]" }
-            div.menu-item { "[ " a href="/currency" "Currency" " ]" }
-            div.menu-item { "[ " a href="/export" "Export" " ]" }
-            div.menu-spacer ""
-            duv.menu-item { "[ " a href="/about" "About" " ]" }
+            div.menu-item {
+                "[ "
+                a href="/" {
+                    "Entries"
+                }
+                " ]"
+            }
+            div.menu-item {
+                "[ "
+                a href="/accounts" {
+                    "Accounts"
+                }
+                " ]"
+            }
+            div.menu-item {
+                "[ "
+                a href="/currency" {
+                    "Currency"
+                }
+                " ]"
+            }
+            div.menu-item { "[ " a href="/export" { "Export" } " ]" }
+            div.menu-spacer {}
+            div.menu-item { "[ " a href="/about" { "About" } " ]" }
             @if logged_in {
-                div.menu-item { "[ " a href="/profile" "Profile" " ]"}
-                div.menu-item { "[ " a href="/logout" "Logout" " ]"}
+                div.menu-item { "[ " a href="/profile" { "Profile" } " ]"}
+                div.menu-item { "[ " a href="/logout" { "Logout" } " ]"}
             } @else {
-                div.menu-item { "[ " a href="/new-session" "Login" " ]"}
+                div.menu-item { "[ " a href="/new-session" { "Login" } " ]"}
             }
         }
     }
